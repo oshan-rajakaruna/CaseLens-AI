@@ -1,6 +1,7 @@
 """Retrieval Agent with independent BM25, semantic, and hybrid search modes.
 
-Advanced reranking and Coordinator integration remain outside this milestone.
+Advanced reranking and full Coordinator orchestration remain outside this
+milestone.
 """
 
 from collections.abc import Iterable, Mapping
@@ -43,6 +44,18 @@ class RetrievalAgent:
             self._semantic,
             candidate_multiplier=candidate_multiplier,
         )
+
+    @property
+    def bm25_index_size(self) -> int:
+        """Return the number of chunks available to lexical retrieval."""
+
+        return len(self.index)
+
+    @property
+    def semantic_index_size(self) -> int:
+        """Return the number of chunks available to semantic retrieval."""
+
+        return len(self._semantic.index)
 
     def index_chunks(self, chunks: Iterable[LegalTextChunk]) -> None:
         """Replace the agent's current BM25 index."""

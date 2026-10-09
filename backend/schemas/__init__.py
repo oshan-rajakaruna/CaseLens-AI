@@ -10,6 +10,15 @@ from backend.schemas.common import (
     RootResponse,
     VerificationResult,
 )
+from backend.schemas.retrieval import (
+    RetrievalFilters,
+    RetrievalMetadataResponse,
+    RetrievalMode,
+    RetrievalResultResponse,
+    RetrievalSearchRequest,
+    RetrievalSearchResponse,
+    RetrievalTaskContext,
+)
 
 __all__ = [
     "AgentResult",
@@ -18,6 +27,13 @@ __all__ = [
     "Citation",
     "Document",
     "HealthResponse",
+    "RetrievalFilters",
+    "RetrievalMetadataResponse",
+    "RetrievalMode",
+    "RetrievalResultResponse",
+    "RetrievalSearchRequest",
+    "RetrievalSearchResponse",
+    "RetrievalTaskContext",
     "RootResponse",
     "VerificationResult",
 ]

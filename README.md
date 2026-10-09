@@ -45,12 +45,16 @@ Implemented:
 - Configurable weighted score fusion and candidate-pool expansion.
 - Optional exact-match filters for court, date/year, legal category, and
   document type.
+- FastAPI `POST /api/retrieval/search` endpoint with BM25, semantic, and hybrid
+  dispatch.
+- Retrieval-side Coordinator task/result adapter using shared agent envelopes.
 
 Not implemented yet:
 
 - Final fusion-weight tuning with retrieval evaluation data.
 - Published Precision@K, Recall@K, and MRR evaluation results.
 - Full Coordinator integration.
+- Production legal dataset ingestion and index initialization.
 - Production vector database persistence.
 - Advanced reranking.
 
@@ -71,6 +75,27 @@ and retrieves twice the requested result count from each mode before fusion.
 Both settings are configurable. The default weights are an initial academic
 prototype choice, not an empirically proven optimum; later retrieval evaluation
 will tune them using Precision@K, Recall@K, and MRR.
+
+### Retrieval API
+
+The backend exposes `POST /api/retrieval/search`. Production indexes must be
+initialized separately; synthetic test fixtures are never loaded by the real
+application. Example request:
+
+```json
+{
+  "query": "unlawful termination",
+  "mode": "hybrid",
+  "top_k": 5,
+  "filters": {
+    "legal_category": "employment"
+  }
+}
+```
+
+Metadata filters currently apply to hybrid mode. The Retrieval-side Coordinator
+adapter accepts the same structured fields plus an optional `legal_issue`; it
+does not implement or modify the shared Coordinator workflow.
 
 ## Planned architecture
 
