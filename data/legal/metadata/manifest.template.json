@@ -1,0 +1,7 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "REPLACE WITH REVIEWED DATASET NAME",
+  "data_classification": "curated",
+  "description": "Academic prototype dataset assembled from manually reviewed, legally accessible sources.",
+  "documents": []
+}

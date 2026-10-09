@@ -15,6 +15,17 @@ class DocumentValidationError(ValueError):
         self.category = category
 
 
+def safe_file_name_for_report(file_name: str | None) -> str | None:
+    """Return a relative display label without exposing an unsafe local path."""
+
+    if file_name is None:
+        return None
+    candidate = Path(file_name)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return "<unsafe-path>"
+    return candidate.as_posix()
+
+
 def validate_document_path(
     entry: LegalDocumentManifestEntry,
     input_dir: str | Path,

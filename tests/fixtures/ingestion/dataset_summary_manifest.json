@@ -1,0 +1,45 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "EXAMPLE ONLY - SYNTHETIC SUMMARY FIXTURE",
+  "data_classification": "example_only",
+  "description": "Synthetic metadata for summary tests; not real case law.",
+  "documents": [
+    {
+      "document_id": "summary-alpha",
+      "file_name": "synthetic_alpha.txt",
+      "case_name": "Synthetic Alpha Matter",
+      "court": "Synthetic Test Court",
+      "citation": "SYNTHETIC-DUP-001",
+      "legal_category": "employment",
+      "document_type": "judgment",
+      "source": "Synthetic official source label",
+      "source_url": "https://example.invalid/shared-source",
+      "provenance": "official_court_source"
+    },
+    {
+      "document_id": "summary-beta",
+      "file_name": "synthetic_alpha.txt",
+      "case_name": "Synthetic Beta Matter",
+      "citation": "synthetic-dup-001",
+      "legal_category": "contract",
+      "document_type": "statute",
+      "source_url": "https://example.invalid/shared-source/",
+      "provenance": "approved_public_source"
+    },
+    {
+      "document_id": "summary-alpha",
+      "file_name": "synthetic_beta.pdf",
+      "case_name": "Synthetic Duplicate Identifier Matter",
+      "court": "Synthetic Test Court",
+      "citation": "SYNTHETIC-UNIQUE-002",
+      "legal_category": "employment",
+      "document_type": "judgment",
+      "source": "CaseLens synthetic test fixture",
+      "provenance": "team_curated_sample"
+    },
+    {
+      "file_name": "synthetic_beta.txt",
+      "provenance": "team_curated_sample"
+    }
+  ]
+}

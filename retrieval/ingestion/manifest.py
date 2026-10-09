@@ -154,6 +154,7 @@ class ManifestDocumentRecord:
     document_id: str | None
     file_name: str | None
     errors: tuple[str, ...] = ()
+    raw_entry: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -211,6 +212,7 @@ def load_manifest(path: str | Path) -> LegalDatasetManifest:
                     document_id=document_id,
                     file_name=file_name,
                     errors=_validation_messages(exc),
+                    raw_entry=dict(raw_entry),
                 )
             )
             continue
@@ -223,6 +225,7 @@ def load_manifest(path: str | Path) -> LegalDatasetManifest:
                     document_id=entry.document_id,
                     file_name=entry.file_name,
                     errors=("document_id: duplicate value in manifest",),
+                    raw_entry=dict(raw_entry),
                 )
             )
             continue
@@ -234,6 +237,7 @@ def load_manifest(path: str | Path) -> LegalDatasetManifest:
                 entry=entry,
                 document_id=entry.document_id,
                 file_name=entry.file_name,
+                raw_entry=dict(raw_entry),
             )
         )
 

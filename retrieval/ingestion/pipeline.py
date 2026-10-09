@@ -8,7 +8,11 @@ from retrieval.embeddings.base import EmbeddingService
 from retrieval.ingestion.indexing import build_bm25_index, build_semantic_index
 from retrieval.ingestion.manifest import LegalDatasetManifest, load_manifest
 from retrieval.ingestion.report import DocumentIngestionReport, IngestionReport
-from retrieval.ingestion.validator import DocumentValidationError, validate_document_path
+from retrieval.ingestion.validator import (
+    DocumentValidationError,
+    safe_file_name_for_report,
+    validate_document_path,
+)
 from retrieval.preprocessing import (
     DocumentLoadError,
     LoadedDocument,
@@ -83,7 +87,7 @@ class IngestionPipeline:
                     report,
                     position=record.position,
                     document_id=record.document_id,
-                    file_name=record.file_name,
+                    file_name=safe_file_name_for_report(record.file_name),
                     failure_category="invalid_metadata",
                     errors=list(record.errors),
                 )
@@ -95,7 +99,7 @@ class IngestionPipeline:
                     report,
                     position=record.position,
                     document_id=record.document_id,
-                    file_name=record.file_name,
+                    file_name=safe_file_name_for_report(record.file_name),
                     failure_category="invalid_metadata",
                     errors=["Manifest entry could not be parsed"],
                 )
@@ -105,7 +109,7 @@ class IngestionPipeline:
                     DocumentIngestionReport(
                         manifest_position=record.position,
                         document_id=entry.document_id,
-                        file_name=entry.file_name,
+                        file_name=safe_file_name_for_report(entry.file_name),
                         status="skipped",
                         warnings=["Document is disabled in the manifest"],
                     )
@@ -130,7 +134,7 @@ class IngestionPipeline:
                     report,
                     position=record.position,
                     document_id=entry.document_id,
-                    file_name=entry.file_name,
+                    file_name=safe_file_name_for_report(entry.file_name),
                     failure_category=exc.category,
                     errors=[str(exc)],
                 )
@@ -140,7 +144,7 @@ class IngestionPipeline:
                     report,
                     position=record.position,
                     document_id=entry.document_id,
-                    file_name=entry.file_name,
+                    file_name=safe_file_name_for_report(entry.file_name),
                     failure_category=exc.category,
                     errors=[exc.public_message],
                 )
@@ -150,7 +154,7 @@ class IngestionPipeline:
                     report,
                     position=record.position,
                     document_id=entry.document_id,
-                    file_name=entry.file_name,
+                    file_name=safe_file_name_for_report(entry.file_name),
                     failure_category="unreadable_document",
                     errors=["Document could not be read"],
                 )
@@ -161,7 +165,7 @@ class IngestionPipeline:
                 DocumentIngestionReport(
                     manifest_position=record.position,
                     document_id=entry.document_id,
-                    file_name=entry.file_name,
+                    file_name=safe_file_name_for_report(entry.file_name),
                     status="processed",
                     chunk_count=len(document_chunks),
                     warnings=document_warnings,
@@ -227,7 +231,7 @@ class IngestionPipeline:
             DocumentIngestionReport(
                 manifest_position=position,
                 document_id=document_id,
-                file_name=file_name,
+                file_name=safe_file_name_for_report(file_name),
                 status="failed",
                 failure_category=failure_category,
                 errors=errors,

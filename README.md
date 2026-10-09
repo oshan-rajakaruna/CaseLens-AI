@@ -58,6 +58,8 @@ Implemented:
 - Manifest-driven curated legal dataset validation and ingestion.
 - Reusable BM25 index construction with explicit, optional semantic indexing.
 - Structured strict/non-strict ingestion reports and a no-API dry-run mode.
+- Metadata-only dataset summaries, duplicate detection, and index-readiness
+  reporting.
 
 Not implemented yet:
 
@@ -230,6 +232,46 @@ documents.
 The team must review source rights, provenance, extraction quality, and dataset
 scope before relying on an index. **CaseLens does NOT claim complete coverage
 of Sri Lankan law.**
+
+### Curated Legal Dataset Workflow
+
+The initial academic prototype target is approximately 30–45 manually curated
+documents: 10–15 each for Employment Law, Contract Law, and Property Law. This
+is a planning target only; a real dataset has not yet been collected. Source
+collection and review are shared by all four team members.
+
+Approved `.txt` and `.pdf` files belong in the ignored `data/legal/raw/`
+directory. Copy `data/legal/metadata/manifest.template.json` to
+`data/legal/metadata/manifest.json`, then add only reviewed metadata and one of
+the approved provenance labels. Official sources should retain their original
+URL where available. Never invent unavailable metadata or citations, and never
+classify synthetic fixtures as real legal sources.
+
+Run the metadata summary, duplicate scan, extraction validation, and BM25 /
+semantic readiness report:
+
+```powershell
+python -m retrieval.ingestion.prepare `
+  --manifest data/legal/metadata/manifest.json `
+  --input-dir data/legal/raw
+```
+
+The preparation command is the dataset summary and validation command. It
+reports counts, missing optional metadata, duplicate identifiers/files/
+citations/source URLs, expected chunks, and readiness without building indexes
+or calling Gemini. Run the lower-level ingestion dry-run with:
+
+```powershell
+python -m retrieval.ingestion.run `
+  --manifest data/legal/metadata/manifest.json `
+  --input-dir data/legal/raw `
+  --dry-run
+```
+
+See [LEGAL_DATASET_COLLECTION.md](docs/LEGAL_DATASET_COLLECTION.md) for the
+four-member collection checklist, manifest rules, provenance guidance, and
+evaluation preparation. **CaseLens does NOT claim complete coverage of Sri
+Lankan law.**
 
 ## Planned architecture
 
