@@ -42,3 +42,21 @@ class BM25SearchResult(BaseModel):
     date: str | None = None
     legal_category: str | None = None
     document_type: str | None = None
+
+
+class SemanticSearchResult(BaseModel):
+    """Structured, display-ready cosine-similarity retrieval result."""
+
+    rank: int = Field(ge=1)
+    document_id: str
+    chunk_id: str
+    case_name: str | None = None
+    similarity_score: float = Field(ge=-1, le=1)
+    chunk_text: str
+    citation: str | None = None
+    source: str | None = None
+    court: str | None = None
+    date: str | None = None
+    legal_category: str | None = None
+    document_type: str | None = None
+    metadata: LegalDocumentMetadata

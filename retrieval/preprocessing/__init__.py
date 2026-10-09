@@ -7,6 +7,7 @@ from retrieval.preprocessing.metadata import (
     BM25SearchResult,
     LegalDocumentMetadata,
     LegalTextChunk,
+    SemanticSearchResult,
 )
 
 __all__ = [
@@ -14,6 +15,7 @@ __all__ = [
     "DocumentLoadError",
     "LegalDocumentMetadata",
     "LegalTextChunk",
+    "SemanticSearchResult",
     "chunk_text",
     "clean_text",
     "load_text_document",

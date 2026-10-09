@@ -22,8 +22,9 @@ review, and precedent retrieval assistant. The repository is currently in
 - Authentication, authorization, security controls, and responsible-AI checks.
 - PostgreSQL persistence and production storage.
 
-No semantic AI, authentication, or database feature is implemented in this
-phase. The retrieval module currently provides the lexical foundation below.
+No generative case-analysis, authentication, or database feature is implemented
+in this phase. The retrieval module currently provides lexical and semantic
+search foundations as separate retrieval modes.
 
 ## Retrieval Module - Current Status
 
@@ -35,20 +36,32 @@ Implemented:
 - Reusable legal document and chunk metadata.
 - In-memory Okapi BM25 indexing.
 - Structured BM25 top-k search.
-- BM25-only Retrieval Agent interface.
+- Gemini embedding service using the official Google GenAI SDK.
+- Retrieval-specific query and document embedding formatting.
+- In-memory semantic vector indexing with cosine similarity.
+- Structured semantic top-k search.
+- Separate BM25 and semantic Retrieval Agent interfaces.
 
 Not implemented yet:
 
-- Gemini embeddings.
-- Semantic vector search.
-- Vector database/index.
 - Hybrid BM25 + semantic ranking.
+- BM25/semantic score normalization and fusion.
 - Metadata filtering.
 - Full Coordinator integration.
 - Retrieval evaluation metrics.
+- Production vector database persistence.
 
-The retrieval implementation uses lexical BM25 only and does not call Gemini
-or any other external AI service.
+Semantic indexing and queries call Gemini only when their explicit methods are
+used. BM25 remains independent and does not call Gemini. Configure backend-only
+embedding access with:
+
+```dotenv
+GEMINI_API_KEY=
+GEMINI_EMBEDDING_MODEL=gemini-embedding-2
+GEMINI_EMBEDDING_DIMENSION=768
+```
+
+Never place a real Gemini key in source control or frontend configuration.
 
 ## Planned architecture
 
