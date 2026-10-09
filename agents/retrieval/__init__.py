@@ -1,5 +1,5 @@
-"""Retrieval Agent foundation.
+"""Phase 1 BM25-only Retrieval Agent foundation."""
 
-This agent will locate relevant legal sources and precedents. No search or
-ranking logic is implemented in Phase 1.
-"""
+from agents.retrieval.retrieval_agent import RetrievalAgent
+
+__all__ = ["RetrievalAgent"]

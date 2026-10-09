@@ -16,14 +16,39 @@ review, and precedent retrieval assistant. The repository is currently in
 ## Planned for future phases
 
 - Agent orchestration and specialized agent behavior.
-- BM25, embedding, vector-store, and precedent retrieval pipelines.
+- Semantic embedding, vector-store, and hybrid precedent retrieval pipelines.
 - NLP, evidence analysis, and report generation.
 - LLM provider integrations and model prompts.
 - Authentication, authorization, security controls, and responsible-AI checks.
 - PostgreSQL persistence and production storage.
 
-No planned AI, retrieval, authentication, or database feature is implemented
-in this phase.
+No semantic AI, authentication, or database feature is implemented in this
+phase. The retrieval module currently provides the lexical foundation below.
+
+## Retrieval Module - Current Status
+
+Implemented:
+
+- Plain UTF-8 text loading foundation.
+- Conservative text cleaning.
+- Deterministic word-based chunking with configurable size and overlap.
+- Reusable legal document and chunk metadata.
+- In-memory Okapi BM25 indexing.
+- Structured BM25 top-k search.
+- BM25-only Retrieval Agent interface.
+
+Not implemented yet:
+
+- Gemini embeddings.
+- Semantic vector search.
+- Vector database/index.
+- Hybrid BM25 + semantic ranking.
+- Metadata filtering.
+- Full Coordinator integration.
+- Retrieval evaluation metrics.
+
+The retrieval implementation uses lexical BM25 only and does not call Gemini
+or any other external AI service.
 
 ## Planned architecture
 
@@ -50,7 +75,7 @@ can develop them in parallel.
 frontend/      React and Vite application shell
 backend/       FastAPI app, API routing, configuration, and shared schemas
 agents/        Coordinator and specialist-agent package boundaries
-retrieval/     Future preprocessing, BM25, embedding, and vector-store work
+retrieval/     Text preprocessing and BM25 retrieval; semantic work is future
 nlp/           Future language and evidence-processing work
 database/      Future PostgreSQL persistence boundary
 security/      Future security and responsible-AI controls
