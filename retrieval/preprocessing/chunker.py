@@ -9,6 +9,7 @@ def chunk_text(
     *,
     chunk_size: int = 300,
     overlap: int = 50,
+    start_index: int = 1,
 ) -> list[LegalTextChunk]:
     """Split text into chunks measured in words.
 
@@ -25,6 +26,8 @@ def chunk_text(
         raise ValueError("overlap cannot be negative")
     if overlap >= chunk_size:
         raise ValueError("overlap must be smaller than chunk_size")
+    if start_index <= 0:
+        raise ValueError("start_index must be greater than zero")
 
     words = text.split()
     if not words:
@@ -32,7 +35,7 @@ def chunk_text(
 
     chunks: list[LegalTextChunk] = []
     step = chunk_size - overlap
-    for index, start in enumerate(range(0, len(words), step), start=1):
+    for index, start in enumerate(range(0, len(words), step), start=start_index):
         chunk_words = words[start : start + chunk_size]
         if not chunk_words:
             continue

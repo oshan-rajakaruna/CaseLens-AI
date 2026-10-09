@@ -1,0 +1,19 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "EXAMPLE ONLY - MIXED SYNTHETIC PDF FIXTURES",
+  "data_classification": "example_only",
+  "documents": [
+    {
+      "document_id": "broken-pdf",
+      "file_name": "synthetic_corrupted.pdf",
+      "source": "CaseLens synthetic corrupted PDF fixture",
+      "provenance": "team_curated_sample"
+    },
+    {
+      "document_id": "valid-pdf",
+      "file_name": "synthetic_valid.pdf",
+      "source": "CaseLens synthetic valid PDF fixture",
+      "provenance": "team_curated_sample"
+    }
+  ]
+}

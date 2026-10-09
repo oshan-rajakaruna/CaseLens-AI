@@ -12,6 +12,7 @@ class DocumentIngestionReport(BaseModel):
     document_id: str | None = None
     file_name: str | None = None
     status: Literal["processed", "failed", "skipped"]
+    failure_category: str | None = None
     chunk_count: int = Field(default=0, ge=0)
     errors: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)

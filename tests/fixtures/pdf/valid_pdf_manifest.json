@@ -1,0 +1,15 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "EXAMPLE ONLY - SYNTHETIC PDF FIXTURES",
+  "data_classification": "example_only",
+  "description": "Synthetic PDF ingestion test; not real case law.",
+  "documents": [
+    {
+      "document_id": "synthetic-pdf",
+      "file_name": "synthetic_multipage.pdf",
+      "case_name": "Synthetic PDF Matter",
+      "source": "CaseLens synthetic PDF test fixture",
+      "provenance": "team_curated_sample"
+    }
+  ]
+}

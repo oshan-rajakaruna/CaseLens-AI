@@ -20,6 +20,10 @@ class LegalDocumentMetadata(BaseModel):
     provenance: str | None = None
     notes: str | None = None
     file_name: str | None = None
+    source_file_type: str | None = None
+    page_number: int | None = Field(default=None, ge=1)
+    page_start: int | None = Field(default=None, ge=1)
+    page_end: int | None = Field(default=None, ge=1)
 
 
 class LegalTextChunk(BaseModel):

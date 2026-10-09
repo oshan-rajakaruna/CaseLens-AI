@@ -11,11 +11,12 @@ from retrieval.ingestion.report import DocumentIngestionReport, IngestionReport
 from retrieval.ingestion.validator import DocumentValidationError, validate_document_path
 from retrieval.preprocessing import (
     DocumentLoadError,
+    LoadedDocument,
     chunk_text,
     clean_text,
-    load_text_document,
+    load_document,
 )
-from retrieval.preprocessing.metadata import LegalTextChunk
+from retrieval.preprocessing.metadata import LegalDocumentMetadata, LegalTextChunk
 from retrieval.vector_store import SemanticSearchService
 
 
@@ -83,6 +84,7 @@ class IngestionPipeline:
                     position=record.position,
                     document_id=record.document_id,
                     file_name=record.file_name,
+                    failure_category="invalid_metadata",
                     errors=list(record.errors),
                 )
                 continue
@@ -94,6 +96,7 @@ class IngestionPipeline:
                     position=record.position,
                     document_id=record.document_id,
                     file_name=record.file_name,
+                    failure_category="invalid_metadata",
                     errors=["Manifest entry could not be parsed"],
                 )
                 continue
@@ -112,32 +115,44 @@ class IngestionPipeline:
 
             try:
                 file_path = validate_document_path(entry, self.input_dir)
-                loaded_text = load_text_document(file_path)
-                cleaned_text = clean_text(loaded_text)
-                document_chunks = chunk_text(
-                    cleaned_text,
+                loaded_document = load_document(file_path)
+                document_chunks, document_warnings = self._chunk_document(
+                    loaded_document,
                     entry.to_metadata(),
-                    chunk_size=self.chunk_size,
-                    overlap=self.overlap,
                 )
                 if not document_chunks:
-                    raise DocumentLoadError("Document produced no usable chunks")
+                    raise DocumentLoadError(
+                        "Document produced no usable chunks",
+                        category="empty_extracted_text",
+                    )
             except DocumentValidationError as exc:
                 self._record_failure(
                     report,
                     position=record.position,
                     document_id=entry.document_id,
                     file_name=entry.file_name,
+                    failure_category=exc.category,
                     errors=[str(exc)],
                 )
                 continue
-            except (DocumentLoadError, OSError, UnicodeError):
+            except DocumentLoadError as exc:
                 self._record_failure(
                     report,
                     position=record.position,
                     document_id=entry.document_id,
                     file_name=entry.file_name,
-                    errors=["Document could not be loaded as non-empty UTF-8 text"],
+                    failure_category=exc.category,
+                    errors=[exc.public_message],
+                )
+                continue
+            except (OSError, UnicodeError):
+                self._record_failure(
+                    report,
+                    position=record.position,
+                    document_id=entry.document_id,
+                    file_name=entry.file_name,
+                    failure_category="unreadable_document",
+                    errors=["Document could not be read"],
                 )
                 continue
 
@@ -149,6 +164,7 @@ class IngestionPipeline:
                     file_name=entry.file_name,
                     status="processed",
                     chunk_count=len(document_chunks),
+                    warnings=document_warnings,
                 )
             )
             report.successfully_processed += 1
@@ -204,6 +220,7 @@ class IngestionPipeline:
         position: int,
         document_id: str | None,
         file_name: str | None,
+        failure_category: str,
         errors: list[str],
     ) -> None:
         report.documents.append(
@@ -212,12 +229,67 @@ class IngestionPipeline:
                 document_id=document_id,
                 file_name=file_name,
                 status="failed",
+                failure_category=failure_category,
                 errors=errors,
             )
         )
         report.failed_documents += 1
         if self.strict:
             raise StrictIngestionError(report)
+
+    def _chunk_document(
+        self,
+        loaded_document: LoadedDocument,
+        metadata: LegalDocumentMetadata,
+    ) -> tuple[list[LegalTextChunk], list[str]]:
+        """Clean and chunk TXT or ordered PDF pages through the same chunker."""
+
+        base_metadata = metadata.model_copy(
+            update={"source_file_type": loaded_document.document_type}
+        )
+        if not loaded_document.pages:
+            cleaned_text = clean_text(loaded_document.text)
+            return (
+                chunk_text(
+                    cleaned_text,
+                    base_metadata,
+                    chunk_size=self.chunk_size,
+                    overlap=self.overlap,
+                ),
+                [],
+            )
+
+        document_chunks: list[LegalTextChunk] = []
+        empty_pages = 0
+        next_chunk_index = 1
+        for page in loaded_document.pages:
+            cleaned_page_text = clean_text(page.text)
+            if not cleaned_page_text:
+                empty_pages += 1
+                continue
+            page_metadata = base_metadata.model_copy(
+                update={
+                    "page_number": page.page_number,
+                    "page_start": page.page_number,
+                    "page_end": page.page_number,
+                }
+            )
+            page_chunks = chunk_text(
+                cleaned_page_text,
+                page_metadata,
+                chunk_size=self.chunk_size,
+                overlap=self.overlap,
+                start_index=next_chunk_index,
+            )
+            document_chunks.extend(page_chunks)
+            next_chunk_index += len(page_chunks)
+
+        warnings = (
+            [f"{empty_pages} PDF page(s) contained no extractable text"]
+            if empty_pages
+            else []
+        )
+        return document_chunks, warnings
 
     def _new_report(
         self,

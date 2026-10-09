@@ -30,7 +30,7 @@ hybrid search foundations plus offline evaluation tooling.
 
 Implemented:
 
-- Plain UTF-8 text loading foundation.
+- UTF-8 TXT and embedded-text PDF loading with ordered page provenance.
 - Conservative text cleaning.
 - Deterministic word-based chunking with configurable size and overlap.
 - Reusable legal document and chunk metadata.
@@ -128,7 +128,7 @@ template.
 
 ### Legal Dataset Ingestion
 
-Retrieval Milestone 6 provides a local, manifest-driven pipeline for legal
+Retrieval Milestones 6–7 provide a local, manifest-driven pipeline for legal
 documents that the team has obtained and approved. Place source files in
 `data/legal/raw/`, reviewed JSON manifests in `data/legal/metadata/`, and any
 future derived local artifacts in `data/legal/processed/`. Raw and processed
@@ -155,9 +155,39 @@ provide either `source` or `source_url`; team-curated samples may omit both.
 See `data/legal/metadata/manifest.example.json`; it is explicitly
 disabled and labelled **EXAMPLE ONLY — NOT REAL CASE LAW**.
 
-Milestone 6 accepts non-empty UTF-8 `.txt` files only. PDF extraction and OCR
-are not included. PDF support is a follow-up after the project selects and
-reviews a suitable extraction dependency; OCR remains out of scope.
+Supported ingestion types:
+
+| Type | Status | Behavior |
+| --- | --- | --- |
+| TXT | ✅ | Loads non-empty UTF-8 text, including an optional byte-order mark. |
+| PDF | ✅ | Extracts embedded page text with `pypdf` in physical page order. |
+| OCR | ❌ | Not supported in the current MVP. |
+
+PDF extraction retains page records internally and chunks each usable page
+through the same cleaner and chunker used for TXT. PDF chunks include
+`page_number`, `page_start`, and `page_end` metadata for future citation work.
+Pages without embedded text are skipped with a report warning when other pages
+remain usable. A PDF with no extractable text is rejected as a possible scanned
+or image-only document with the explicit message that OCR is unsupported.
+CaseLens does not claim that all PDFs are extractable.
+
+Reference a PDF from the existing manifest exactly like a TXT file:
+
+```json
+{
+  "document_id": "stable-reviewed-id",
+  "file_name": "reviewed-document.pdf",
+  "document_type": "judgment",
+  "source": "Reviewed source name",
+  "source_url": "https://approved.example/document",
+  "provenance": "official_court_source"
+}
+```
+
+Only textual page content is requested from the PDF parser. Ingestion does not
+execute embedded JavaScript, actions, attachments, macros, or other PDF
+content. Path traversal remains blocked and source files must resolve beneath
+the configured input directory.
 
 Validate files and calculate chunk counts without building indexes or making
 Gemini requests:

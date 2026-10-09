@@ -1,0 +1,14 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "EXAMPLE ONLY - SEMANTIC PDF FIXTURE",
+  "data_classification": "example_only",
+  "documents": [
+    {
+      "document_id": "semantic-pdf",
+      "file_name": "synthetic_valid.pdf",
+      "case_name": "Synthetic Employment PDF Matter",
+      "source": "CaseLens synthetic PDF test fixture",
+      "provenance": "team_curated_sample"
+    }
+  ]
+}

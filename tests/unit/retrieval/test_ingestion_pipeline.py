@@ -50,8 +50,9 @@ def test_non_strict_batch_continues_after_missing_and_unsupported_files() -> Non
     ]
     assert outcome.report.documents[1].errors == ["Referenced file does not exist"]
     assert outcome.report.documents[2].errors == [
-        "Unsupported file type; supported types: .txt"
+        "Unsupported file type; supported types: .txt, .pdf"
     ]
+    assert outcome.report.documents[2].failure_category == "unsupported_file_type"
 
 
 def test_strict_batch_stops_at_first_document_failure() -> None:
