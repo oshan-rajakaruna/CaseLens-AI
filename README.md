@@ -23,8 +23,8 @@ review, and precedent retrieval assistant. The repository is currently in
 - PostgreSQL persistence and production storage.
 
 No generative case-analysis, authentication, or database feature is implemented
-in this phase. The retrieval module currently provides lexical and semantic
-search foundations as separate retrieval modes.
+in this phase. The retrieval module currently provides lexical, semantic, and
+hybrid search foundations plus offline evaluation tooling.
 
 ## Retrieval Module - Current Status
 
@@ -48,11 +48,19 @@ Implemented:
 - FastAPI `POST /api/retrieval/search` endpoint with BM25, semantic, and hybrid
   dispatch.
 - Retrieval-side Coordinator task/result adapter using shared agent envelopes.
+- Retrieval evaluation framework with per-query and aggregate Precision@K,
+  Recall@K, and MRR.
+- BM25, semantic, and hybrid mode comparison.
+- Configurable hybrid-weight experiment support without automatic winner
+  selection.
+- Optional manual relevance labels kept separate from binary metric ground
+  truth.
 
 Not implemented yet:
 
 - Final fusion-weight tuning with retrieval evaluation data.
-- Published Precision@K, Recall@K, and MRR evaluation results.
+- Final real-world evaluation using a curated legal dataset and reviewed
+  relevance judgements.
 - Full Coordinator integration.
 - Production legal dataset ingestion and index initialization.
 - Production vector database persistence.
@@ -73,8 +81,9 @@ Never place a real Gemini key in source control or frontend configuration.
 Hybrid retrieval defaults to equal BM25 and semantic weights (`0.5` / `0.5`)
 and retrieves twice the requested result count from each mode before fusion.
 Both settings are configurable. The default weights are an initial academic
-prototype choice, not an empirically proven optimum; later retrieval evaluation
-will tune them using Precision@K, Recall@K, and MRR.
+prototype choice, not an empirically proven optimum. The evaluation framework
+can compare weights using Precision@K, Recall@K, and MRR, but final tuning must
+wait for a curated legal dataset.
 
 ### Retrieval API
 
@@ -96,6 +105,23 @@ application. Example request:
 Metadata filters currently apply to hybrid mode. The Retrieval-side Coordinator
 adapter accepts the same structured fields plus an optional `legal_issue`; it
 does not implement or modify the shared Coordinator workflow.
+
+### Retrieval evaluation
+
+Run the bundled deterministic framework check from the repository root:
+
+```powershell
+python -m retrieval.evaluation.run
+python -m retrieval.evaluation.run --weights --json
+```
+
+The bundled dataset is explicitly synthetic and the offline embedding service
+exists only to make framework execution reproducible without Gemini, internet,
+or an API key. Its output is not a claim about production accuracy or legal
+retrieval quality. Final evaluation results remain pending a curated legal
+dataset and reviewed relevance judgements. See
+[RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md) for the reporting
+template.
 
 ## Planned architecture
 

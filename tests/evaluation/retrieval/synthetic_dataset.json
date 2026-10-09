@@ -1,0 +1,103 @@
+{
+  "dataset_id": "caselens-synthetic-retrieval-v1",
+  "name": "CaseLens Synthetic Retrieval Framework Dataset",
+  "description": "Synthetic legal-style examples for deterministic framework validation only. This is not real case law and not a legal retrieval benchmark.",
+  "data_classification": "synthetic",
+  "documents": [
+    {
+      "chunk_id": "employment-001-chunk-0001",
+      "chunk_text": "Synthetic employment termination dispute involving dismissal notice, disciplinary procedure, reinstatement, and compensation.",
+      "metadata": {
+        "document_id": "employment-001",
+        "case_name": "Synthetic Employment Matter",
+        "court": "Synthetic Labour Court",
+        "date": "2025-01-15",
+        "citation": "SYNTHETIC-EMPLOYMENT-001",
+        "legal_category": "employment",
+        "document_type": "synthetic judgment",
+        "source": "synthetic-evaluation-dataset"
+      }
+    },
+    {
+      "chunk_id": "contract-001-chunk-0001",
+      "chunk_text": "Synthetic commercial contract dispute involving supplier breach, delayed goods, contractual duties, and damages.",
+      "metadata": {
+        "document_id": "contract-001",
+        "case_name": "Synthetic Contract Matter",
+        "court": "Synthetic Commercial Court",
+        "date": "2025-02-20",
+        "citation": "SYNTHETIC-CONTRACT-001",
+        "legal_category": "contract",
+        "document_type": "synthetic judgment",
+        "source": "synthetic-evaluation-dataset"
+      }
+    },
+    {
+      "chunk_id": "property-001-chunk-0001",
+      "chunk_text": "Synthetic property dispute involving land title, a boundary survey, ownership documents, and possession.",
+      "metadata": {
+        "document_id": "property-001",
+        "case_name": "Synthetic Property Matter",
+        "court": "Synthetic District Court",
+        "date": "2025-03-10",
+        "citation": "SYNTHETIC-PROPERTY-001",
+        "legal_category": "property",
+        "document_type": "synthetic judgment",
+        "source": "synthetic-evaluation-dataset"
+      }
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "synthetic-q1",
+      "query": "employment termination dismissal compensation",
+      "legal_category": "employment",
+      "relevance_unit": "document",
+      "relevant_ids": ["employment-001"],
+      "notes": "Synthetic topic-match query.",
+      "human_judgments": [
+        {
+          "item_id": "employment-001",
+          "label": "relevant",
+          "notes": "Direct synthetic topic match."
+        },
+        {
+          "item_id": "contract-001",
+          "label": "partially_relevant",
+          "notes": "Contains general remedies but not the employment issue."
+        },
+        {
+          "item_id": "property-001",
+          "label": "not_relevant"
+        }
+      ]
+    },
+    {
+      "query_id": "synthetic-q2",
+      "query": "supplier breach contract damages",
+      "legal_category": "contract",
+      "relevance_unit": "document",
+      "relevant_ids": ["contract-001"],
+      "notes": "Synthetic contract query.",
+      "human_judgments": []
+    },
+    {
+      "query_id": "synthetic-q3",
+      "query": "land title boundary ownership",
+      "legal_category": "property",
+      "relevance_unit": "document",
+      "relevant_ids": ["property-001"],
+      "notes": "Synthetic property query.",
+      "human_judgments": []
+    },
+    {
+      "query_id": "synthetic-q4",
+      "query": "disciplinary procedure reinstatement",
+      "legal_category": "employment",
+      "relevance_unit": "chunk",
+      "relevant_ids": ["employment-001-chunk-0001"],
+      "notes": "Synthetic chunk-level relevance example.",
+      "human_judgments": []
+    }
+  ]
+}
