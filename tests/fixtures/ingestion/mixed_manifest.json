@@ -1,0 +1,29 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "Synthetic mixed ingestion fixtures",
+  "data_classification": "example_only",
+  "description": "EXAMPLE ONLY - NOT REAL CASE LAW.",
+  "documents": [
+    {
+      "document_id": "synthetic-alpha",
+      "file_name": "synthetic_alpha.txt",
+      "provenance": "team_curated_sample"
+    },
+    {
+      "document_id": "synthetic-missing",
+      "file_name": "missing.txt",
+      "provenance": "team_curated_sample"
+    },
+    {
+      "document_id": "synthetic-unsupported",
+      "file_name": "unsupported.pdf",
+      "provenance": "team_curated_sample"
+    },
+    {
+      "document_id": "synthetic-disabled",
+      "file_name": "also-missing.txt",
+      "provenance": "team_curated_sample",
+      "enabled": false
+    }
+  ]
+}

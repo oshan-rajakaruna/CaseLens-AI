@@ -55,6 +55,9 @@ Implemented:
   selection.
 - Optional manual relevance labels kept separate from binary metric ground
   truth.
+- Manifest-driven curated legal dataset validation and ingestion.
+- Reusable BM25 index construction with explicit, optional semantic indexing.
+- Structured strict/non-strict ingestion reports and a no-API dry-run mode.
 
 Not implemented yet:
 
@@ -62,7 +65,7 @@ Not implemented yet:
 - Final real-world evaluation using a curated legal dataset and reviewed
   relevance judgements.
 - Full Coordinator integration.
-- Production legal dataset ingestion and index initialization.
+- Persistent production index initialization and lifecycle management.
 - Production vector database persistence.
 - Advanced reranking.
 
@@ -122,6 +125,81 @@ retrieval quality. Final evaluation results remain pending a curated legal
 dataset and reviewed relevance judgements. See
 [RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md) for the reporting
 template.
+
+### Legal Dataset Ingestion
+
+Retrieval Milestone 6 provides a local, manifest-driven pipeline for legal
+documents that the team has obtained and approved. Place source files in
+`data/legal/raw/`, reviewed JSON manifests in `data/legal/metadata/`, and any
+future derived local artifacts in `data/legal/processed/`. Raw and processed
+contents are Git-ignored; their README files remain tracked. Reviewed
+evaluation data can later be placed in `data/evaluation/`.
+
+The manifest is a UTF-8 JSON object with `manifest_version`, `dataset_name`,
+`data_classification` (`curated` or `example_only`), an optional `description`,
+and a `documents` array. Every document requires a stable `document_id`, a
+relative `file_name`, and one of these provenance values:
+
+- `official_court_source`
+- `official_legislation_source`
+- `approved_public_source`
+- `team_curated_sample`
+
+Supported optional document metadata is `case_name`, `court`, `date`,
+`citation`, `legal_category`, `document_type`, `source`, HTTP(S) `source_url`,
+and `notes`. `enabled` defaults to `true`; disabled entries are reported as
+skipped. Leave unavailable metadata null or omit it—never invent it. Provenance,
+source, and URL metadata are retained on every chunk for later citation and
+verification. Entries marked as an official or approved public source must
+provide either `source` or `source_url`; team-curated samples may omit both.
+See `data/legal/metadata/manifest.example.json`; it is explicitly
+disabled and labelled **EXAMPLE ONLY — NOT REAL CASE LAW**.
+
+Milestone 6 accepts non-empty UTF-8 `.txt` files only. PDF extraction and OCR
+are not included. PDF support is a follow-up after the project selects and
+reviews a suitable extraction dependency; OCR remains out of scope.
+
+Validate files and calculate chunk counts without building indexes or making
+Gemini requests:
+
+```powershell
+python -m retrieval.ingestion.run `
+  --manifest data/legal/metadata/manifest.json `
+  --input-dir data/legal/raw `
+  --dry-run
+```
+
+Build the in-memory BM25 index (the default, with no Gemini requirement):
+
+```powershell
+python -m retrieval.ingestion.run `
+  --manifest data/legal/metadata/manifest.json `
+  --input-dir data/legal/raw
+```
+
+Semantic indexing is opt-in. It reports the number of chunks before requests,
+then uses the existing Gemini embedding service and in-memory vector index:
+
+```powershell
+python -m retrieval.ingestion.run `
+  --manifest data/legal/metadata/manifest.json `
+  --input-dir data/legal/raw `
+  --semantic `
+  --chunk-size 300 `
+  --chunk-overlap 50
+```
+
+Add `--strict` to stop on the first invalid document; otherwise the batch
+continues and reports each processed, failed, or skipped entry. The command
+emits a structured JSON report with document and chunk totals plus safe
+per-document errors. It does not log source text. Keep `GEMINI_API_KEY` only in
+the ignored backend `.env`, never in manifests, frontend configuration, logs,
+or source control. Do not commit confidential, copyrighted, or unreviewed
+documents.
+
+The team must review source rights, provenance, extraction quality, and dataset
+scope before relying on an index. **CaseLens does NOT claim complete coverage
+of Sri Lankan law.**
 
 ## Planned architecture
 

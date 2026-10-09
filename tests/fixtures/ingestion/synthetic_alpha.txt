@@ -1,0 +1,4 @@
+EXAMPLE ONLY. This is not real case law.
+
+The fictional Alpha matter discusses a workplace dismissal notice and a
+contractual hearing. It exists only to test deterministic ingestion behavior.

@@ -1,0 +1,12 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "Synthetic empty-document fixture",
+  "data_classification": "example_only",
+  "documents": [
+    {
+      "document_id": "synthetic-empty",
+      "file_name": "empty.txt",
+      "provenance": "team_curated_sample"
+    }
+  ]
+}

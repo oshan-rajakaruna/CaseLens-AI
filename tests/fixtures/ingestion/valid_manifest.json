@@ -1,0 +1,31 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "Synthetic ingestion fixtures",
+  "data_classification": "example_only",
+  "description": "EXAMPLE ONLY - NOT REAL CASE LAW.",
+  "documents": [
+    {
+      "document_id": "synthetic-alpha",
+      "file_name": "synthetic_alpha.txt",
+      "case_name": "Synthetic Alpha Matter",
+      "court": "Synthetic Test Court",
+      "date": "2026-01-01",
+      "citation": "SYNTHETIC-ALPHA",
+      "legal_category": "employment",
+      "document_type": "synthetic_fixture",
+      "source": "CaseLens test fixture",
+      "source_url": "https://example.invalid/synthetic-alpha",
+      "provenance": "team_curated_sample",
+      "notes": "Not legal authority."
+    },
+    {
+      "document_id": "synthetic-beta",
+      "file_name": "synthetic_beta.txt",
+      "case_name": "Synthetic Beta Matter",
+      "legal_category": "property",
+      "document_type": "synthetic_fixture",
+      "source": "CaseLens test fixture",
+      "provenance": "team_curated_sample"
+    }
+  ]
+}

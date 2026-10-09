@@ -1,0 +1,17 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "Synthetic duplicate ingestion fixtures",
+  "data_classification": "example_only",
+  "documents": [
+    {
+      "document_id": "duplicate-id",
+      "file_name": "synthetic_alpha.txt",
+      "provenance": "team_curated_sample"
+    },
+    {
+      "document_id": "duplicate-id",
+      "file_name": "synthetic_beta.txt",
+      "provenance": "team_curated_sample"
+    }
+  ]
+}

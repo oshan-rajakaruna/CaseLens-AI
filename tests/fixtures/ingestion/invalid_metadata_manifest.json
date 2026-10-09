@@ -1,0 +1,27 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "Synthetic invalid metadata fixture",
+  "data_classification": "example_only",
+  "documents": [
+    {
+      "file_name": "synthetic_beta.txt",
+      "provenance": "team_curated_sample"
+    },
+    {
+      "document_id": "bad-provenance",
+      "file_name": "synthetic_beta.txt",
+      "provenance": "invented_source"
+    },
+    {
+      "document_id": "bad-url",
+      "file_name": "synthetic_beta.txt",
+      "source_url": "file:///private/source.txt",
+      "provenance": "team_curated_sample"
+    },
+    {
+      "document_id": "synthetic-beta",
+      "file_name": "synthetic_beta.txt",
+      "provenance": "team_curated_sample"
+    }
+  ]
+}

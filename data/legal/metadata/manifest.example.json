@@ -1,0 +1,23 @@
+{
+  "manifest_version": "1.0",
+  "dataset_name": "EXAMPLE ONLY - NOT REAL CASE LAW",
+  "data_classification": "example_only",
+  "description": "Schema example only. This manifest does not contain or represent a real judgment.",
+  "documents": [
+    {
+      "document_id": "example-disabled-001",
+      "file_name": "replace-with-approved-source.txt",
+      "case_name": "EXAMPLE ONLY - NOT A REAL CASE",
+      "court": null,
+      "date": null,
+      "citation": null,
+      "legal_category": "example_only",
+      "document_type": "example",
+      "source": "Replace with a reviewed source description",
+      "source_url": null,
+      "provenance": "team_curated_sample",
+      "notes": "Disabled schema example; add approved material before enabling.",
+      "enabled": false
+    }
+  ]
+}

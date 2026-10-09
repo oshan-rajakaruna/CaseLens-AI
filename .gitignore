@@ -25,3 +25,9 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/legal/raw/*
+!data/legal/raw/.gitkeep
+!data/legal/raw/README.md
+data/legal/processed/*
+!data/legal/processed/.gitkeep
+!data/legal/processed/README.md

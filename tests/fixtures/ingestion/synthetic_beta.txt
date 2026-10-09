@@ -1,0 +1,4 @@
+EXAMPLE ONLY. This is not real case law.
+
+The fictional Beta matter discusses a property boundary and a registered
+title. It exists only to test metadata attachment and batch processing.

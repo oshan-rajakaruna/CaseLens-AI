@@ -16,6 +16,10 @@ class LegalDocumentMetadata(BaseModel):
     legal_category: str | None = None
     document_type: str | None = None
     source: str | None = None
+    source_url: str | None = None
+    provenance: str | None = None
+    notes: str | None = None
+    file_name: str | None = None
 
 
 class LegalTextChunk(BaseModel):
