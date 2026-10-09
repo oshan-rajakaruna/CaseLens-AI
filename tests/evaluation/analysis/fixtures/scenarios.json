@@ -1,0 +1,22 @@
+[
+  {"id":"rental-payment","text":"Nimal Perera paid LKR 50,000 on 12 January 2025.","format":"txt"},
+  {"id":"rental-nonpayment","text":"Kamal Silva alleges that Nimal Perera failed to pay LKR 50,000 on 12 January 2025.","format":"txt"},
+  {"id":"sale-execution","text":"Saman Fernando signed the sale agreement on 5 February 2025.","format":"txt"},
+  {"id":"denied-execution","text":"Ravi denies that he signed the agreement on 5 February 2025.","format":"txt"},
+  {"id":"notice","text":"Legal notice was served on Nimal Perera on 10 March 2025.","format":"txt"},
+  {"id":"denied-notice","text":"Nimal Perera denies receiving notice on 10 March 2025.","format":"txt"},
+  {"id":"termination-condition","text":"If payment is not made within 14 days, the agreement may be terminated.","format":"txt"},
+  {"id":"ordinary-rent","text":"The tenant shall pay monthly rent of Rs. 45,000.","format":"txt"},
+  {"id":"permission","text":"The landlord may inspect the premises.","format":"txt"},
+  {"id":"prohibition","text":"The tenant must not sublet the leased land.","format":"txt"},
+  {"id":"proceeding","text":"Amara Perera filed a proceeding in the District Court of Colombo on 2025-04-01.","format":"txt"},
+  {"id":"witness","text":"The witness stated on 10 April 2025 that Nimal Perera paid LKR 10,000 on 5 February 2025.","format":"txt"},
+  {"id":"month-date","text":"The parties entered into the lease agreement in March 2025.","format":"txt"},
+  {"id":"year-date","text":"The contract was executed in 2024.","format":"txt"},
+  {"id":"ambiguous-date","text":"Nimal Perera paid LKR 5,000 on 03/04/2025.","format":"txt"},
+  {"id":"uncertain","text":"The tenant may have transferred LKR 20,000 on 12 May 2025.","format":"txt"},
+  {"id":"normal-contract","text":"The parties agreed to maintain the premises.","format":"txt"},
+  {"id":"pdf-pages","text":"Nimal Perera paid LKR 30,000 on 1 June 2025.\nKamal Silva paid LKR 20,000 on 2 June 2025.","format":"pdf"},
+  {"id":"docx-table","text":"Payment\tLKR 75,000\nNimal Perera paid LKR 75,000 on 15 June 2025.","format":"docx"},
+  {"id":"same-payment-conflict","text":"Nimal Perera paid LKR 50,000 on 12 January 2025. Nimal Perera did not pay LKR 50,000 on 12 January 2025.","format":"txt"}
+]
