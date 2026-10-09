@@ -1,5 +1,6 @@
 """Shared contracts for verification inputs and reviewable decisions."""
 
+from collections.abc import Sequence
 from datetime import date
 from typing import Annotated, Literal
 
@@ -125,33 +126,76 @@ class VerificationRequest(BaseModel):
 
 
 class VerificationResponse(VerificationResult):
-    """Detailed result that remains usable as the legacy VerificationResult."""
+    """Detailed result of deterministic checks, not a ruling on legal truth or authority."""
 
+    verified: bool = Field(
+        description=(
+            "True only when every claim and citation passes the current deterministic "
+            "checks; this does not establish legal truth, authority, or an outcome."
+        )
+    )
     task_id: NonEmptyText
-    overall_status: OverallVerificationStatus
+    overall_status: OverallVerificationStatus = Field(
+        description=(
+            "Deterministic aggregate, prioritized as invalid citations, unsupported, "
+            "uncertain, partially supported, then supported."
+        )
+    )
     claim_results: list[ClaimVerificationResult] = Field(default_factory=list)
     warnings: list[ResponsibleAIWarning] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def check_verified_decision(self) -> "VerificationResponse":
-        if not self.verified:
-            return self
-        if self.overall_status != "supported" or not self.claim_results:
-            raise ValueError("A verified response requires supported, reviewed claims")
         for result in self.claim_results:
-            if result.status != "supported" or result.missing_evidence or result.missing_citations:
-                raise ValueError("Every verified claim needs evidence and citations")
-            remaining_citations = result.claim.citations.copy()
-            if len(result.citation_results) != len(remaining_citations):
-                raise ValueError("Every citation in a verified claim must be validated")
-            for check in result.citation_results:
-                if (
-                    check.status != "valid"
-                    or check.citation not in remaining_citations
-                    or check.evidence_id not in result.evidence_ids
-                ):
-                    raise ValueError("Every citation must match reviewed evidence for its claim")
-                remaining_citations.remove(check.citation)
-            if any(citation not in self.citations for citation in result.claim.citations):
-                raise ValueError("Verified claim citations must appear in the shared result")
+            if result.status != "uncertain" and not _has_complete_valid_citations(result):
+                raise ValueError("Decided claims require reviewed evidence and valid citations")
+        expected_status = determine_overall_status(self.claim_results)
+        if self.overall_status != expected_status:
+            raise ValueError(f"Overall status must be {expected_status} for these claim results")
+        if self.verified != (expected_status == "supported"):
+            raise ValueError("Verified must match the deterministic overall status")
+        if self.verified:
+            for result in self.claim_results:
+                if any(citation not in self.citations for citation in result.claim.citations):
+                    raise ValueError("Verified claim citations must appear in the shared result")
         return self
+
+
+def determine_overall_status(
+    claim_results: Sequence[ClaimVerificationResult],
+) -> OverallVerificationStatus:
+    """Apply the agent's fixed priority to the recorded checks, without legal inference."""
+
+    if any(
+        check.status == "invalid"
+        for result in claim_results
+        for check in result.citation_results
+    ):
+        return "invalid_citations"
+    if any(result.status == "unsupported" for result in claim_results):
+        return "unsupported"
+    if not claim_results or any(
+        result.status == "uncertain" or not _has_complete_valid_citations(result)
+        for result in claim_results
+    ):
+        return "uncertain"
+    if any(result.status == "partially_supported" for result in claim_results):
+        return "partially_supported"
+    return "supported"
+
+
+def _has_complete_valid_citations(result: ClaimVerificationResult) -> bool:
+    if not result.evidence_ids or not result.claim.citations:
+        return False
+    remaining_citations = result.claim.citations.copy()
+    if len(result.citation_results) != len(remaining_citations):
+        return False
+    for check in result.citation_results:
+        if (
+            check.status != "valid"
+            or check.citation not in remaining_citations
+            or check.evidence_id not in result.evidence_ids
+        ):
+            return False
+        remaining_citations.remove(check.citation)
+    return True

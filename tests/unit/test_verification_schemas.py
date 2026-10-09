@@ -7,7 +7,9 @@ from agents.coordinator.schemas import CoordinatorResponse
 from backend.schemas import (
     AgentResult,
     Citation,
+    CitationStatus,
     CitationValidationResult,
+    ClaimStatus,
     ClaimVerificationResult,
     LegalClaim,
     ResponsibleAIWarning,
@@ -17,6 +19,39 @@ from backend.schemas import (
     VerificationResponse,
     VerificationResult,
 )
+from backend.schemas.verification import determine_overall_status
+
+
+def _claim_result(
+    claim_id: str,
+    status: ClaimStatus,
+    citation_status: CitationStatus = "valid",
+) -> ClaimVerificationResult:
+    citation = Citation(document_id=f"doc-{claim_id}") if citation_status != "missing" else None
+    claim = LegalClaim(
+        id=claim_id,
+        text="A legal assertion.",
+        citations=[citation] if citation is not None else [],
+    )
+    evidence_id = f"passage-{claim_id}" if citation_status == "valid" else None
+    source = (
+        SourceMetadata(document_id=citation.document_id, title="Decision")
+        if citation_status == "valid"
+        else None
+    )
+    return ClaimVerificationResult(
+        claim=claim,
+        status=status,
+        evidence_ids=[evidence_id] if evidence_id is not None else [],
+        citation_results=[
+            CitationValidationResult(
+                citation=citation,
+                status=citation_status,
+                evidence_id=evidence_id,
+                source=source,
+            )
+        ],
+    )
 
 
 def test_request_keeps_missing_evidence_and_citations_explicit() -> None:
@@ -164,3 +199,131 @@ def test_coordinator_accepts_detailed_and_legacy_results() -> None:
         ).verification,
         VerificationResult,
     )
+
+
+@pytest.mark.parametrize(
+    ("claim_status", "citation_status", "expected_status"),
+    [
+        ("supported", "valid", "supported"),
+        ("partially_supported", "valid", "partially_supported"),
+        ("unsupported", "valid", "unsupported"),
+        ("uncertain", "valid", "uncertain"),
+        ("uncertain", "invalid", "invalid_citations"),
+        ("uncertain", "missing", "uncertain"),
+        ("uncertain", "uncertain", "uncertain"),
+    ],
+)
+def test_response_status_and_verified_follow_claim_and_citation_results(
+    claim_status: ClaimStatus,
+    citation_status: CitationStatus,
+    expected_status: str,
+) -> None:
+    result = _claim_result("claim-1", claim_status, citation_status)
+    citations = result.claim.citations
+    verified = expected_status == "supported"
+
+    assert determine_overall_status([result]) == expected_status
+    response = VerificationResponse(
+        task_id="task-1",
+        verified=verified,
+        overall_status=expected_status,
+        claim_results=[result],
+        citations=citations,
+    )
+    assert response.verified is verified
+
+    with pytest.raises(ValidationError):
+        VerificationResponse(
+            task_id="task-1",
+            verified=not verified,
+            overall_status=expected_status,
+            claim_results=[result],
+            citations=citations,
+        )
+    with pytest.raises(ValidationError):
+        VerificationResponse(
+            task_id="task-1",
+            verified=False,
+            overall_status="uncertain" if expected_status == "supported" else "supported",
+            claim_results=[result],
+            citations=citations,
+        )
+
+
+@pytest.mark.parametrize(
+    ("results", "expected_status"),
+    [
+        (["supported", "unsupported", "uncertain"], "unsupported"),
+        (["partially_supported", "uncertain"], "uncertain"),
+        (["supported", "partially_supported"], "partially_supported"),
+    ],
+)
+def test_mixed_claim_status_precedence(results: list[ClaimStatus], expected_status: str) -> None:
+    claim_results = [_claim_result(f"claim-{index}", status) for index, status in enumerate(results)]
+    response = VerificationResponse(
+        task_id="task-1",
+        verified=False,
+        overall_status=expected_status,
+        claim_results=claim_results,
+    )
+
+    assert response.overall_status == determine_overall_status(claim_results)
+
+
+def test_invalid_citation_takes_precedence_over_unsupported_claim() -> None:
+    claim_results = [
+        _claim_result("refuted", "unsupported"),
+        _claim_result("bad-reference", "uncertain", "invalid"),
+    ]
+
+    assert determine_overall_status(claim_results) == "invalid_citations"
+    response = VerificationResponse(
+        task_id="task-1",
+        verified=False,
+        overall_status="invalid_citations",
+        claim_results=claim_results,
+    )
+    assert response.verified is False
+
+
+@pytest.mark.parametrize("citation_status", ["invalid", "missing", "uncertain"])
+def test_decided_claim_rejects_incomplete_citation_checks(citation_status: CitationStatus) -> None:
+    citation = Citation(document_id="doc-1") if citation_status != "missing" else None
+    claim = LegalClaim(
+        id="claim-1",
+        text="A legal assertion.",
+        citations=[citation] if citation is not None else [],
+    )
+    result = ClaimVerificationResult(
+        claim=claim,
+        status="supported",
+        evidence_ids=["passage-1"],
+        citation_results=[CitationValidationResult(citation=citation, status=citation_status)],
+    )
+
+    with pytest.raises(ValidationError):
+        VerificationResponse(
+            task_id="task-1",
+            verified=False,
+            overall_status="invalid_citations" if citation_status == "invalid" else "uncertain",
+            claim_results=[result],
+        )
+
+
+def test_no_reviewed_evidence_is_uncertain_and_empty_results_are_not_supported() -> None:
+    result = _claim_result("claim-1", "uncertain", "uncertain")
+    assert result.missing_evidence is True
+    assert determine_overall_status([result]) == "uncertain"
+    assert VerificationResponse(
+        task_id="task-1", verified=False, overall_status="uncertain", claim_results=[result]
+    ).verified is False
+    assert determine_overall_status([]) == "uncertain"
+    with pytest.raises(ValidationError):
+        VerificationResponse(task_id="task-1", verified=False, overall_status="supported")
+
+
+def test_verified_is_documented_as_a_deterministic_check_only() -> None:
+    description = VerificationResponse.model_json_schema()["properties"]["verified"]["description"]
+
+    assert "deterministic" in description
+    assert "does not establish legal truth" in description

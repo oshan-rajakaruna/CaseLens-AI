@@ -3,7 +3,8 @@
 from agents.verification.citation_validator import validate_citations
 from agents.verification.claim_checker import check_claim
 from agents.verification.responsible_ai import generate_warnings
-from backend.schemas import OverallVerificationStatus, VerificationRequest, VerificationResponse
+from backend.schemas import VerificationRequest, VerificationResponse
+from backend.schemas.verification import determine_overall_status
 
 
 class VerificationAgent:
@@ -16,21 +17,7 @@ class VerificationAgent:
             claim_results.append(check_claim(claim, request.evidence, citation_results))
 
         warnings = generate_warnings(claim_results)
-        overall_status: OverallVerificationStatus
-        if any(
-            citation.status == "invalid"
-            for result in claim_results
-            for citation in result.citation_results
-        ):
-            overall_status = "invalid_citations"
-        elif any(result.status == "unsupported" for result in claim_results):
-            overall_status = "unsupported"
-        elif any(result.status == "uncertain" for result in claim_results):
-            overall_status = "uncertain"
-        elif any(result.status == "partially_supported" for result in claim_results):
-            overall_status = "partially_supported"
-        else:
-            overall_status = "supported"
+        overall_status = determine_overall_status(claim_results)
 
         return VerificationResponse(
             task_id=request.task_id,

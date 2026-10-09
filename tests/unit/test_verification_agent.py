@@ -71,6 +71,9 @@ def test_supported_request_preserves_ids_citations_and_coordinator_contract() ->
     restored = CoordinatorResponse.model_validate(coordinator.model_dump())
     assert isinstance(restored.verification, VerificationResponse)
     assert restored.verification.claim_results[0].evidence_ids == [evidence.id]
+    restored_json = CoordinatorResponse.model_validate_json(coordinator.model_dump_json())
+    assert isinstance(restored_json.verification, VerificationResponse)
+    assert restored_json.verification.overall_status == "supported"
 
 
 def test_empty_evidence_is_uncertain_and_not_verified() -> None:
@@ -164,6 +167,25 @@ def test_unsupported_claim_takes_precedence_over_other_uncertainty() -> None:
     assert response.overall_status == "unsupported"
     assert response.verified is False
     assert {"unsupported_claim", "uncertain_claim"} <= _codes(response)
+
+
+def test_invalid_citation_takes_precedence_in_mixed_agent_results() -> None:
+    refuted = _claim(claim_id="claim-refuted")
+    invalid = _claim(
+        claim_id="claim-invalid", citations=[Citation(document_id="doc-unknown")]
+    )
+    request = VerificationRequest(
+        task_id="task-1",
+        claims=[refuted, invalid],
+        evidence=[_evidence("The appeal was not allowed.")],
+    )
+
+    response = VerificationAgent().verify(request)
+
+    assert [result.status for result in response.claim_results] == ["unsupported", "uncertain"]
+    assert response.overall_status == "invalid_citations"
+    assert response.verified is False
+    assert {"unsupported_claim", "invalid_citation"} <= _codes(response)
 
 
 def test_conflicting_evidence_stays_uncertain_and_emits_warning() -> None:
