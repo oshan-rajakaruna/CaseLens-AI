@@ -1,5 +1,5 @@
-"""Verification Agent foundation.
+"""Deterministic verification of citations, claim text, and review warnings."""
 
-This agent will validate outputs, citations, and responsible-AI safeguards. No
-automated verification behavior is implemented in Phase 1.
-"""
+from agents.verification.agent import VerificationAgent
+
+__all__ = ["VerificationAgent"]
