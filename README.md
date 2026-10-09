@@ -16,7 +16,7 @@ review, and precedent retrieval assistant. The repository is currently in
 ## Planned for future phases
 
 - Agent orchestration and specialized agent behavior.
-- Semantic embedding, vector-store, and hybrid precedent retrieval pipelines.
+- Production retrieval persistence, evaluation, and advanced reranking.
 - NLP, evidence analysis, and report generation.
 - LLM provider integrations and model prompts.
 - Authentication, authorization, security controls, and responsible-AI checks.
@@ -41,15 +41,18 @@ Implemented:
 - In-memory semantic vector indexing with cosine similarity.
 - Structured semantic top-k search.
 - Separate BM25 and semantic Retrieval Agent interfaces.
+- Hybrid BM25 + semantic ranking with explicit min-max normalization.
+- Configurable weighted score fusion and candidate-pool expansion.
+- Optional exact-match filters for court, date/year, legal category, and
+  document type.
 
 Not implemented yet:
 
-- Hybrid BM25 + semantic ranking.
-- BM25/semantic score normalization and fusion.
-- Metadata filtering.
+- Final fusion-weight tuning with retrieval evaluation data.
+- Published Precision@K, Recall@K, and MRR evaluation results.
 - Full Coordinator integration.
-- Retrieval evaluation metrics.
 - Production vector database persistence.
+- Advanced reranking.
 
 Semantic indexing and queries call Gemini only when their explicit methods are
 used. BM25 remains independent and does not call Gemini. Configure backend-only
@@ -62,6 +65,12 @@ GEMINI_EMBEDDING_DIMENSION=768
 ```
 
 Never place a real Gemini key in source control or frontend configuration.
+
+Hybrid retrieval defaults to equal BM25 and semantic weights (`0.5` / `0.5`)
+and retrieves twice the requested result count from each mode before fusion.
+Both settings are configurable. The default weights are an initial academic
+prototype choice, not an empirically proven optimum; later retrieval evaluation
+will tune them using Precision@K, Recall@K, and MRR.
 
 ## Planned architecture
 
@@ -88,7 +97,7 @@ can develop them in parallel.
 frontend/      React and Vite application shell
 backend/       FastAPI app, API routing, configuration, and shared schemas
 agents/        Coordinator and specialist-agent package boundaries
-retrieval/     Text preprocessing and BM25 retrieval; semantic work is future
+retrieval/     Text preprocessing, BM25, semantic, and hybrid retrieval
 nlp/           Future language and evidence-processing work
 database/      Future PostgreSQL persistence boundary
 security/      Future security and responsible-AI controls

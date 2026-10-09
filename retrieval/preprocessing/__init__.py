@@ -5,6 +5,7 @@ from retrieval.preprocessing.cleaner import clean_text
 from retrieval.preprocessing.loader import DocumentLoadError, load_text_document
 from retrieval.preprocessing.metadata import (
     BM25SearchResult,
+    HybridSearchResult,
     LegalDocumentMetadata,
     LegalTextChunk,
     SemanticSearchResult,
@@ -13,6 +14,7 @@ from retrieval.preprocessing.metadata import (
 __all__ = [
     "BM25SearchResult",
     "DocumentLoadError",
+    "HybridSearchResult",
     "LegalDocumentMetadata",
     "LegalTextChunk",
     "SemanticSearchResult",

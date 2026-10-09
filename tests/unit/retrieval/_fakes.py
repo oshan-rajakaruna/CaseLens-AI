@@ -21,7 +21,17 @@ class DeterministicEmbeddingService:
     @staticmethod
     def _vector_for(text: str) -> list[float]:
         normalized = text.casefold()
-        if any(term in normalized for term in ("employment", "termination", "dismissal")):
+        if any(
+            term in normalized
+            for term in (
+                "employment",
+                "termination",
+                "dismissal",
+                "worker",
+                "workplace",
+                "job loss",
+            )
+        ):
             return [1.0, 0.05, 0.0]
         if any(term in normalized for term in ("property", "boundary", "title")):
             return [0.05, 1.0, 0.0]

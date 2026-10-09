@@ -42,6 +42,7 @@ class BM25SearchResult(BaseModel):
     date: str | None = None
     legal_category: str | None = None
     document_type: str | None = None
+    metadata: LegalDocumentMetadata | None = None
 
 
 class SemanticSearchResult(BaseModel):
@@ -60,3 +61,25 @@ class SemanticSearchResult(BaseModel):
     legal_category: str | None = None
     document_type: str | None = None
     metadata: LegalDocumentMetadata
+
+
+class HybridSearchResult(BaseModel):
+    """Merged result with transparent lexical, semantic, and fused scores."""
+
+    rank: int = Field(ge=1)
+    document_id: str
+    chunk_id: str
+    case_name: str | None = None
+    chunk_text: str
+    citation: str | None = None
+    source: str | None = None
+    court: str | None = None
+    date: str | None = None
+    legal_category: str | None = None
+    document_type: str | None = None
+    metadata: LegalDocumentMetadata
+    raw_bm25_score: float | None = Field(default=None, ge=0)
+    normalized_bm25_score: float = Field(ge=0, le=1)
+    raw_semantic_score: float | None = Field(default=None, ge=-1, le=1)
+    normalized_semantic_score: float = Field(ge=0, le=1)
+    hybrid_score: float = Field(ge=0, le=1)

@@ -1,7 +1,6 @@
-"""Retrieval Agent with independent BM25 and semantic search modes.
+"""Retrieval Agent with independent BM25, semantic, and hybrid search modes.
 
-Hybrid ranking, metadata filters, and Coordinator integration remain outside
-this milestone.
+Advanced reranking and Coordinator integration remain outside this milestone.
 """
 
 from collections.abc import Iterable, Mapping
@@ -9,8 +8,15 @@ from typing import Any
 
 from retrieval.bm25 import BM25Index, BM25Searcher
 from retrieval.embeddings import EmbeddingService, GeminiEmbeddingService
+from retrieval.hybrid import (
+    DEFAULT_BM25_WEIGHT,
+    DEFAULT_CANDIDATE_MULTIPLIER,
+    DEFAULT_SEMANTIC_WEIGHT,
+    HybridSearchService,
+)
 from retrieval.preprocessing.metadata import (
     BM25SearchResult,
+    HybridSearchResult,
     LegalTextChunk,
     SemanticSearchResult,
 )
@@ -25,11 +31,17 @@ class RetrievalAgent:
         chunks: Iterable[LegalTextChunk] | None = None,
         *,
         embedding_service: EmbeddingService | None = None,
+        candidate_multiplier: int = DEFAULT_CANDIDATE_MULTIPLIER,
     ) -> None:
         self.index = BM25Index().build(chunks or [])
         self._searcher = BM25Searcher(self.index)
         self._semantic = SemanticSearchService(
             embedding_service or GeminiEmbeddingService()
+        )
+        self._hybrid = HybridSearchService(
+            self._searcher,
+            self._semantic,
+            candidate_multiplier=candidate_multiplier,
         )
 
     def index_chunks(self, chunks: Iterable[LegalTextChunk]) -> None:
@@ -62,7 +74,7 @@ class RetrievalAgent:
 
         if filters:
             raise NotImplementedError(
-                "Metadata filtering is not implemented in Retrieval Milestone 2"
+                "Metadata filtering is currently supported only by hybrid search"
             )
         return self._searcher.search(query, top_k=top_k)
 
@@ -76,6 +88,27 @@ class RetrievalAgent:
 
         if filters:
             raise NotImplementedError(
-                "Metadata filtering is not implemented in Retrieval Milestone 2"
+                "Metadata filtering is currently supported only by hybrid search"
             )
         return self._semantic.search(query, top_k=top_k)
+
+    def search_hybrid(
+        self,
+        query: str,
+        top_k: int = 5,
+        filters: Mapping[str, Any] | None = None,
+        *,
+        bm25_weight: float = DEFAULT_BM25_WEIGHT,
+        semantic_weight: float = DEFAULT_SEMANTIC_WEIGHT,
+        candidate_multiplier: int | None = None,
+    ) -> list[HybridSearchResult]:
+        """Search BM25 and semantic candidates, then return a fused ranking."""
+
+        return self._hybrid.search(
+            query,
+            top_k=top_k,
+            filters=filters,
+            bm25_weight=bm25_weight,
+            semantic_weight=semantic_weight,
+            candidate_multiplier=candidate_multiplier,
+        )

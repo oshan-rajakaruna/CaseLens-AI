@@ -48,6 +48,7 @@ class BM25Searcher:
                     date=metadata.date,
                     legal_category=metadata.legal_category,
                     document_type=metadata.document_type,
+                    metadata=metadata,
                 )
             )
         return results
