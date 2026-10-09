@@ -5,9 +5,6 @@ from collections.abc import Sequence
 from backend.schemas import ClaimVerificationResult, ResponsibleAIWarning
 
 
-# The claim checker currently records conflicts in its issues list.
-_CONFLICT_ISSUE = "Cited passages contain conflicting statements."
-
 _WARNING_SPECS = (
     (
         "unsupported_claim",
@@ -61,7 +58,7 @@ def generate_warnings(
             affected["missing_citation"].append(claim_id)
         if any(check.status == "invalid" for check in result.citation_results):
             affected["invalid_citation"].append(claim_id)
-        if _CONFLICT_ISSUE in result.issues:
+        if "conflicting_evidence" in result.issue_codes:
             affected["conflicting_evidence"].append(claim_id)
 
     warnings = [

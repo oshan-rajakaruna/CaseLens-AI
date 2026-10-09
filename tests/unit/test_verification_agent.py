@@ -209,9 +209,16 @@ def test_conflicting_evidence_stays_uncertain_and_emits_warning() -> None:
     assert response.overall_status == "uncertain"
     assert response.verified is False
     assert response.claim_results[0].evidence_ids == ["passage-1", "passage-2"]
+    assert response.claim_results[0].issue_codes == ["conflicting_evidence"]
     assert next(w for w in response.warnings if w.code == "conflicting_evidence").claim_ids == [
         claim.id
     ]
+    coordinator = CoordinatorResponse(
+        result=AgentResult(task_id="task-1", agent="verification", status="complete"),
+        verification=response,
+    )
+    restored = CoordinatorResponse.model_validate_json(coordinator.model_dump_json())
+    assert restored.verification.claim_results[0].issue_codes == ["conflicting_evidence"]
 
 
 def test_empty_claims_are_rejected_by_request_schema() -> None:

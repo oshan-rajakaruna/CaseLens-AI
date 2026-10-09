@@ -44,6 +44,7 @@ def test_direct_statement_match_is_supported() -> None:
     assert result.status == "supported"
     assert result.evidence_ids == ["passage-1"]
     assert result.citation_results[0].status == "valid"
+    assert result.issue_codes == []
 
 
 def test_direct_negation_is_unsupported() -> None:
@@ -53,6 +54,7 @@ def test_direct_negation_is_unsupported() -> None:
 
     assert result.status == "unsupported"
     assert result.evidence_ids == ["passage-1"]
+    assert result.issue_codes == []
 
 
 def test_one_of_two_simple_statements_is_partially_supported() -> None:
@@ -136,6 +138,8 @@ def test_conflicting_cited_passages_remain_uncertain() -> None:
 
     assert result.status == "uncertain"
     assert result.evidence_ids == ["passage-1", "passage-2"]
+    assert result.issues == ["Cited passages contain conflicting statements."]
+    assert result.issue_codes == ["conflicting_evidence"]
 
 
 def test_conflicting_compound_passages_remain_uncertain() -> None:
@@ -156,6 +160,7 @@ def test_conflicting_compound_passages_remain_uncertain() -> None:
     result = _check(claim, evidence)
 
     assert result.status == "uncertain"
+    assert result.issue_codes == ["conflicting_evidence"]
 
 
 def test_inconsistent_citation_result_is_not_trusted() -> None:

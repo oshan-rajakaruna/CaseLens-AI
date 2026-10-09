@@ -9,6 +9,7 @@ from backend.schemas import (
     ClaimVerificationResult,
     LegalClaim,
     RetrievedEvidence,
+    VerificationIssueCode,
 )
 
 
@@ -70,9 +71,11 @@ def check_claim(
         for statement in statements
     ]
 
+    issue_codes: list[VerificationIssueCode] = []
     if any(support and contradiction for support, contradiction in zip(matched, contradicted)):
         status = "uncertain"
         issues = ["Cited passages contain conflicting statements."]
+        issue_codes = ["conflicting_evidence"]
     elif any(contradicted):
         status = "unsupported"
         issues = ["A cited passage directly negates a claim statement."]
@@ -92,6 +95,7 @@ def check_claim(
         evidence_ids=evidence_ids,
         citation_results=checks,
         issues=issues,
+        issue_codes=issue_codes,
     )
 
 

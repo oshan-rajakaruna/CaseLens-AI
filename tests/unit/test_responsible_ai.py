@@ -12,6 +12,7 @@ from backend.schemas import (
     ResponsibleAIWarning,
     RetrievedEvidence,
     SourceMetadata,
+    VerificationIssueCode,
 )
 
 
@@ -20,6 +21,7 @@ def _result(
     status: ClaimStatus = "supported",
     *,
     issues: list[str] | None = None,
+    issue_codes: list[VerificationIssueCode] | None = None,
 ) -> ClaimVerificationResult:
     citation = Citation(document_id=f"doc-{claim_id}")
     source = SourceMetadata(document_id=citation.document_id, title="Decision")
@@ -34,6 +36,7 @@ def _result(
             )
         ],
         issues=issues or [],
+        issue_codes=issue_codes or [],
     )
 
 
@@ -94,7 +97,7 @@ def test_invalid_citation_warning() -> None:
     assert "missing_citation" not in warnings
 
 
-def test_conflicting_evidence_warning_uses_recorded_claim_issue() -> None:
+def test_conflicting_evidence_warning_uses_recorded_issue_code() -> None:
     claim = LegalClaim(
         id="claim-1",
         text="The appeal was allowed.",
@@ -118,8 +121,36 @@ def test_conflicting_evidence_warning_uses_recorded_claim_issue() -> None:
     warnings = _by_code([result])
 
     assert result.status == "uncertain"
+    assert result.issue_codes == ["conflicting_evidence"]
     assert warnings["conflicting_evidence"].claim_ids == ["claim-1"]
     assert warnings["uncertain_claim"].claim_ids == ["claim-1"]
+
+
+def test_conflict_warning_does_not_depend_on_display_message() -> None:
+    result = _result(
+        "claim-1",
+        "uncertain",
+        issues=["The cited passages disagree about the disposition."],
+        issue_codes=["conflicting_evidence"],
+    )
+
+    warnings = _by_code([result])
+
+    assert warnings["conflicting_evidence"].claim_ids == ["claim-1"]
+
+
+def test_non_conflict_issues_do_not_trigger_conflict_warning() -> None:
+    changed_message = _result(
+        "claim-1", "uncertain", issues=["The cited passage does not establish the claim."]
+    )
+    old_conflict_message_without_code = _result(
+        "claim-2", "uncertain", issues=["Cited passages contain conflicting statements."]
+    )
+
+    warnings = _by_code([changed_message, old_conflict_message_without_code])
+
+    assert "conflicting_evidence" not in warnings
+    assert warnings["uncertain_claim"].claim_ids == ["claim-1", "claim-2"]
 
 
 def test_multiple_affected_claims_are_grouped_without_duplicate_ids() -> None:

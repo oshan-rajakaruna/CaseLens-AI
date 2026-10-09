@@ -109,6 +109,21 @@ def test_missing_evidence_cannot_support_a_claim() -> None:
         ClaimVerificationResult(claim=claim, status="supported")
 
 
+def test_issue_codes_default_for_older_results_and_reject_unknown_codes() -> None:
+    payload = {
+        "claim": {"id": "claim-1", "text": "The rule applies."},
+        "status": "uncertain",
+        "issues": ["The available passages do not establish the claim."],
+    }
+
+    result = ClaimVerificationResult.model_validate(payload)
+
+    assert result.issue_codes == []
+    assert result.issues == payload["issues"]
+    with pytest.raises(ValidationError):
+        ClaimVerificationResult.model_validate({**payload, "issue_codes": ["other_issue"]})
+
+
 def test_valid_citation_does_not_prove_claim_support() -> None:
     citation = Citation(document_id="doc-1", locator="p. 3")
     source = SourceMetadata(document_id="doc-1", title="Decision")

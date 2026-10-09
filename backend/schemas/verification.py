@@ -16,6 +16,7 @@ OverallVerificationStatus = Literal[
     "supported", "partially_supported", "unsupported", "uncertain", "invalid_citations"
 ]
 WarningSeverity = Literal["info", "caution", "critical"]
+VerificationIssueCode = Literal["conflicting_evidence"]
 
 
 class LegalClaim(BaseModel):
@@ -73,13 +74,14 @@ class CitationValidationResult(BaseModel):
 
 
 class ClaimVerificationResult(BaseModel):
-    """Evidence support and citation checks for a single claim."""
+    """Evidence support, citation checks, and stable issue codes for a single claim."""
 
     claim: LegalClaim
     status: ClaimStatus
     evidence_ids: list[NonEmptyText] = Field(default_factory=list)
     citation_results: list[CitationValidationResult] = Field(default_factory=list)
     issues: list[str] = Field(default_factory=list)
+    issue_codes: list[VerificationIssueCode] = Field(default_factory=list)
 
     @computed_field
     @property
