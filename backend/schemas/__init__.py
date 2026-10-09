@@ -1,4 +1,3 @@
-"""Reusable API and inter-agent data contracts."""
 
 from backend.schemas.common import (
     AgentResult,
@@ -10,6 +9,20 @@ from backend.schemas.common import (
     RootResponse,
     VerificationResult,
 )
+from backend.schemas.verification import (
+    CitationStatus,
+    CitationValidationResult,
+    ClaimStatus,
+    ClaimVerificationResult,
+    LegalClaim,
+    OverallVerificationStatus,
+    ResponsibleAIWarning,
+    RetrievedEvidence,
+    SourceMetadata,
+    VerificationRequest,
+    VerificationResponse,
+    WarningSeverity,
+)
 
 __all__ = [
     "AgentResult",
@@ -20,4 +33,16 @@ __all__ = [
     "HealthResponse",
     "RootResponse",
     "VerificationResult",
+    "CitationStatus",
+    "CitationValidationResult",
+    "ClaimStatus",
+    "ClaimVerificationResult",
+    "LegalClaim",
+    "OverallVerificationStatus",
+    "ResponsibleAIWarning",
+    "RetrievedEvidence",
+    "SourceMetadata",
+    "VerificationRequest",
+    "VerificationResponse",
+    "WarningSeverity",
 ]
