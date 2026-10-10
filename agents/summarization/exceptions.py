@@ -19,3 +19,27 @@ class ModelUnavailableError(SummarizationError):
 
 class UnsupportedSourceReferenceError(SummarizationError):
     """Raised when generated output references a source absent from input."""
+
+
+class InvalidModelResponseError(SummarizationError):
+    """Raised when model output is not valid structured summarization data."""
+
+
+class EmptyModelResponseError(SummarizationError):
+    """Raised when the provider returns no usable model content."""
+
+
+class GeminiAuthenticationError(SummarizationError):
+    """Raised when Gemini rejects the configured credentials."""
+
+
+class GeminiRateLimitError(SummarizationError):
+    """Raised when Gemini declines a request because of a usage limit."""
+
+
+class GeminiTimeoutError(SummarizationError):
+    """Raised when a Gemini request times out."""
+
+
+class GeminiProviderError(SummarizationError):
+    """Raised for sanitized, non-specific Gemini provider failures."""

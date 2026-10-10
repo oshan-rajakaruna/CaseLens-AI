@@ -2,10 +2,20 @@
 
 from agents.summarization.agent import SummarizationAgent, SummaryGenerator
 from agents.summarization.exceptions import (
+    EmptyModelResponseError,
+    GeminiAuthenticationError,
+    GeminiProviderError,
+    GeminiRateLimitError,
+    GeminiTimeoutError,
     InvalidSummarizationInputError,
+    InvalidModelResponseError,
     MissingEvidenceError,
     ModelUnavailableError,
     UnsupportedSourceReferenceError,
+)
+from agents.summarization.gemini import (
+    GeminiSummaryGenerator,
+    build_summarization_prompt,
 )
 from agents.summarization.schemas import (
     CaseInformation,
@@ -24,8 +34,15 @@ __all__ = [
     "CaseInformation",
     "Comparison",
     "DraftClaim",
+    "EmptyModelResponseError",
     "EvidenceSummary",
     "ExtractedFact",
+    "GeminiAuthenticationError",
+    "GeminiProviderError",
+    "GeminiRateLimitError",
+    "GeminiSummaryGenerator",
+    "GeminiTimeoutError",
+    "InvalidModelResponseError",
     "InvalidSummarizationInputError",
     "LegalPassage",
     "MissingEvidenceError",
@@ -37,4 +54,5 @@ __all__ = [
     "SummarizationResponse",
     "SummaryGenerator",
     "UnsupportedSourceReferenceError",
+    "build_summarization_prompt",
 ]

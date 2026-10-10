@@ -18,6 +18,8 @@ class Settings:
     backend_port: int
     database_url: str
     llm_api_key: str
+    gemini_model: str
+    gemini_max_output_tokens: int
     secret_key: str
 
 
@@ -31,5 +33,7 @@ def get_settings() -> Settings:
         backend_port=int(getenv("BACKEND_PORT", "8000")),
         database_url=getenv("DATABASE_URL", ""),
         llm_api_key=getenv("LLM_API_KEY", ""),
+        gemini_model=getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        gemini_max_output_tokens=int(getenv("GEMINI_MAX_OUTPUT_TOKENS", "4096")),
         secret_key=getenv("SECRET_KEY", ""),
     )
