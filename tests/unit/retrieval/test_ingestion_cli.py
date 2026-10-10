@@ -8,6 +8,36 @@ from retrieval.ingestion.run import main
 FIXTURES = Path("tests/fixtures/ingestion")
 
 
+def test_cli_loads_environment_once_at_startup(
+    capsys,
+    monkeypatch,
+) -> None:
+    calls: list[None] = []
+
+    def fake_load_environment() -> bool:
+        calls.append(None)
+        return True
+
+    monkeypatch.setattr(
+        "retrieval.ingestion.run.load_retrieval_environment",
+        fake_load_environment,
+    )
+
+    exit_code = main(
+        [
+            "--manifest",
+            str(FIXTURES / "valid_manifest.json"),
+            "--input-dir",
+            str(FIXTURES),
+            "--dry-run",
+        ]
+    )
+
+    assert exit_code == 0
+    assert calls == [None]
+    assert json.loads(capsys.readouterr().out)["dry_run"] is True
+
+
 def test_cli_dry_run_with_semantic_flag_makes_no_provider_request(
     capsys,
 ) -> None:

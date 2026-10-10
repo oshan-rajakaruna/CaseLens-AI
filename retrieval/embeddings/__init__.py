@@ -9,6 +9,7 @@ from retrieval.embeddings.factory import (
     EmbeddingProviderConfigurationError,
     configured_embedding_provider,
     create_embedding_service,
+    validate_embedding_service_configuration,
 )
 from retrieval.embeddings.gemini import (
     DEFAULT_EMBEDDING_DIMENSION,
@@ -56,6 +57,7 @@ __all__ = [
     "DEFAULT_OPENAI_EMBEDDING_MODEL",
     "configured_embedding_provider",
     "create_embedding_service",
+    "validate_embedding_service_configuration",
     "format_document_for_embedding",
     "format_query_for_embedding",
 ]

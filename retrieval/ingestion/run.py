@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 
+from retrieval.config import load_retrieval_environment
 from retrieval.ingestion.manifest import ManifestLoadError
 from retrieval.ingestion.pipeline import IngestionPipeline, StrictIngestionError
 from retrieval.ingestion.report import IngestionReport
@@ -17,6 +18,7 @@ def _print_report(report: IngestionReport) -> None:
 def main(argv: list[str] | None = None) -> int:
     """Run ingestion and emit its structured JSON report."""
 
+    load_retrieval_environment()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--input-dir", type=Path, required=True)

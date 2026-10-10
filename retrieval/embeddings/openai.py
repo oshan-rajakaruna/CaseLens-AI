@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from os import getenv
 from typing import Any
 
-from dotenv import load_dotenv
 from openai import OpenAI
 
 from retrieval.embeddings.common import (
@@ -93,7 +92,6 @@ class OpenAIEmbeddingSettings:
     def from_environment(cls) -> "OpenAIEmbeddingSettings":
         """Load settings and derive the native model dimension when omitted."""
 
-        load_dotenv()
         model = getenv("OPENAI_EMBEDDING_MODEL", DEFAULT_OPENAI_EMBEDDING_MODEL)
         raw_dimension = getenv("OPENAI_EMBEDDING_DIMENSION", "").strip()
         if raw_dimension:

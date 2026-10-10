@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from functools import lru_cache
 from os import getenv
 
-from dotenv import load_dotenv
+from retrieval.config import load_retrieval_environment
 
-load_dotenv()
+load_retrieval_environment()
 
 
 @dataclass(frozen=True, slots=True)

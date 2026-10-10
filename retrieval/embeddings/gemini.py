@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from os import getenv
 from typing import Any
 
-from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
@@ -93,7 +92,6 @@ class GeminiEmbeddingSettings:
     def from_environment(cls) -> "GeminiEmbeddingSettings":
         """Load settings without requiring an API key at import time."""
 
-        load_dotenv()
         raw_dimension = getenv(
             "GEMINI_EMBEDDING_DIMENSION", str(DEFAULT_EMBEDDING_DIMENSION)
         )

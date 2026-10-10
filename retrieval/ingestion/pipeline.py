@@ -5,6 +5,19 @@ from pathlib import Path
 
 from retrieval.bm25 import BM25Index
 from retrieval.embeddings.base import EmbeddingService
+from retrieval.embeddings.factory import (
+    EmbeddingProviderConfigurationError,
+    create_embedding_service,
+    validate_embedding_service_configuration,
+)
+from retrieval.embeddings.gemini import (
+    EmbeddingConfigurationError as GeminiEmbeddingConfigurationError,
+    GeminiEmbeddingError,
+)
+from retrieval.embeddings.openai import (
+    OpenAIEmbeddingConfigurationError,
+    OpenAIEmbeddingError,
+)
 from retrieval.ingestion.indexing import build_bm25_index, build_semantic_index
 from retrieval.ingestion.manifest import LegalDatasetManifest, load_manifest
 from retrieval.ingestion.report import DocumentIngestionReport, IngestionReport
@@ -204,28 +217,64 @@ class IngestionPipeline:
         if not semantic:
             return outcome
 
+        service: EmbeddingService | None = embedding_service
         try:
+            if service is None:
+                service = create_embedding_service()
+                self._record_embedding_telemetry(report, service)
+                validate_embedding_service_configuration(service)
+            else:
+                self._record_embedding_telemetry(report, service)
+
             outcome.semantic_search = build_semantic_index(
                 outcome.chunks,
-                embedding_service=embedding_service,
+                embedding_service=service,
                 checkpoint_path=checkpoint_path,
             )
             report.semantic_indexed_chunks = len(outcome.semantic_search.index)
-            service = outcome.semantic_search.embedding_service
-            report.embedding_provider = getattr(service, "provider", None)
-            report.embedding_model = getattr(service, "model", None)
-            report.embedding_dimension = getattr(service, "dimension", None)
-            report.embedding_requests = getattr(service, "request_count", 0)
-            report.embedding_retries = getattr(service, "retry_count", 0)
             report.semantic_checkpoint_hits = outcome.semantic_search.checkpoint_hits
             report.semantic_new_embeddings = outcome.semantic_search.new_embeddings
+        except (
+            EmbeddingProviderConfigurationError,
+            GeminiEmbeddingConfigurationError,
+            OpenAIEmbeddingConfigurationError,
+        ) as exc:
+            report.errors.append(f"Semantic provider initialization failed: {exc}")
+            if self.strict:
+                raise StrictIngestionError(report) from None
+        except (GeminiEmbeddingError, OpenAIEmbeddingError) as exc:
+            provider = report.embedding_provider or "unknown"
+            report.errors.append(
+                f"Semantic provider request failed for '{provider}': {exc}"
+            )
+            if self.strict:
+                raise StrictIngestionError(report) from None
         except Exception:
             # Provider errors are intentionally converted to a stable message;
             # local paths, credentials, and document contents are not exposed.
-            report.errors.append("Semantic index build failed")
+            provider = report.embedding_provider or "unknown"
+            report.errors.append(
+                f"Semantic index build failed for provider '{provider}'"
+            )
             if self.strict:
                 raise StrictIngestionError(report) from None
+        finally:
+            if service is not None:
+                self._record_embedding_telemetry(report, service)
         return outcome
+
+    @staticmethod
+    def _record_embedding_telemetry(
+        report: IngestionReport,
+        service: EmbeddingService,
+    ) -> None:
+        """Capture safe provider telemetry before and after semantic indexing."""
+
+        report.embedding_provider = getattr(service, "provider", None)
+        report.embedding_model = getattr(service, "model", None)
+        report.embedding_dimension = getattr(service, "dimension", None)
+        report.embedding_requests = getattr(service, "request_count", 0)
+        report.embedding_retries = getattr(service, "retry_count", 0)
 
     def _record_failure(
         self,
