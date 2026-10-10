@@ -1,0 +1,26 @@
+{
+  "dataset": "Fictional CaseLens contract-evidence benchmark v0.1",
+  "annotation_note": "Annotations were authored from scenario text before running the system. They are provisional and require independent legal-reviewer validation.",
+  "expected": {
+    "rental-payment": {"entities":[["Nimal Perera","PERSON"],["LKR 50,000","MONEY"],["12 January 2025","DATE"]],"facts":[["payment_or_transaction","Nimal Perera paid LKR 50,000 on 12 January 2025.","stated",false,false,false]],"timeline":[["2025-01-12","day"]]},
+    "rental-nonpayment": {"facts":[["non_payment_or_breach","Kamal Silva alleges that Nimal Perera failed to pay LKR 50,000 on 12 January 2025.","alleged",false,false,true]],"issues":["contractual_payment_dispute","alleged_contractual_breach"]},
+    "sale-execution": {"facts":[["agreement_execution","Saman Fernando signed the sale agreement on 5 February 2025.","stated",false,false,false]],"timeline":[["2025-02-05","day"]]},
+    "denied-execution": {"facts":[["agreement_execution","Ravi denies that he signed the agreement on 5 February 2025.","disputed",true,false,false]],"issues":["contract_execution_dispute"]},
+    "notice": {"facts":[["notice_or_communication","Legal notice was served on Nimal Perera on 10 March 2025.","stated",false,false,false]],"timeline":[["2025-03-10","day"]]},
+    "denied-notice": {"facts":[["notice_or_communication","Nimal Perera denies receiving notice on 10 March 2025.","disputed",true,false,false]],"issues":["notice_or_communication_dispute"]},
+    "termination-condition": {"clauses":[["termination","If payment is not made within 14 days, the agreement may be terminated.",true]],"timeline":[]},
+    "ordinary-rent": {"clauses":[["obligation","The tenant shall pay monthly rent of Rs. 45,000.",false]],"issues":["contractual_obligation_or_condition"]},
+    "permission": {"clauses":[["permission_or_right","The landlord may inspect the premises.",false]]},
+    "prohibition": {"clauses":[["prohibition","The tenant must not sublet the leased land.",false]]},
+    "proceeding": {"facts":[["legal_proceeding","Amara Perera filed a proceeding in the District Court of Colombo on 2025-04-01.","stated",false,false,false]],"timeline":[["2025-04-01","day"]]},
+    "witness": {"facts":[["payment_or_transaction","The witness stated on 10 April 2025 that Nimal Perera paid LKR 10,000 on 5 February 2025.","uncertain",false,false,true]],"timeline":[["2025-02-05","day"]]},
+    "month-date": {"facts":[["agreement_execution","The parties entered into the lease agreement in March 2025.","stated",false,false,false]],"timeline":[["2025-03","month"]]},
+    "year-date": {"facts":[["agreement_execution","The contract was executed in 2024.","stated",false,false,false]],"timeline":[["2024","year"]]},
+    "ambiguous-date": {"facts":[["payment_or_transaction","Nimal Perera paid LKR 5,000 on 03/04/2025.","stated",false,false,false]],"timeline":[]},
+    "uncertain": {"facts":[["payment_or_transaction","The tenant may have transferred LKR 20,000 on 12 May 2025.","uncertain",false,false,false]],"timeline":[["2025-05-12","day"]]},
+    "normal-contract": {"facts":[],"clauses":[],"issues":[]},
+    "pdf-pages": {"facts":[["payment_or_transaction","Nimal Perera paid LKR 30,000 on 1 June 2025.","stated",false,false,false],["payment_or_transaction","Kamal Silva paid LKR 20,000 on 2 June 2025.","stated",false,false,false]]},
+    "docx-table": {"facts":[["payment_or_transaction","Nimal Perera paid LKR 75,000 on 15 June 2025.","stated",false,false,false]]},
+    "same-payment-conflict": {"contradictions":["affirmation_vs_denial"]}
+  }
+}
