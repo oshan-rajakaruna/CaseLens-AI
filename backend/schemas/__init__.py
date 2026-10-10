@@ -19,6 +19,21 @@ from backend.schemas.retrieval import (
     RetrievalSearchResponse,
     RetrievalTaskContext,
 )
+from backend.schemas.verification import (
+    CitationStatus,
+    CitationValidationResult,
+    ClaimStatus,
+    ClaimVerificationResult,
+    LegalClaim,
+    OverallVerificationStatus,
+    ResponsibleAIWarning,
+    RetrievedEvidence,
+    SourceMetadata,
+    VerificationIssueCode,
+    VerificationRequest,
+    VerificationResponse,
+    WarningSeverity,
+)
 
 __all__ = [
     "AgentResult",
@@ -36,4 +51,17 @@ __all__ = [
     "RetrievalTaskContext",
     "RootResponse",
     "VerificationResult",
+    "CitationStatus",
+    "CitationValidationResult",
+    "ClaimStatus",
+    "ClaimVerificationResult",
+    "LegalClaim",
+    "OverallVerificationStatus",
+    "ResponsibleAIWarning",
+    "RetrievedEvidence",
+    "SourceMetadata",
+    "VerificationIssueCode",
+    "VerificationRequest",
+    "VerificationResponse",
+    "WarningSeverity",
 ]
