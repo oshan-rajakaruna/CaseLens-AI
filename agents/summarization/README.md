@@ -28,7 +28,7 @@ Configure these backend environment variables:
 
 ```text
 LLM_API_KEY=<Gemini API key>
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.8-flash
 GEMINI_MAX_OUTPUT_TOKENS=4096
 ```
 
@@ -50,3 +50,26 @@ facts and citations, and asks for warnings when evidence is insufficient. The
 `SummarizationAgent` still enforces source-reference and citation-excerpt
 preservation after generation. All model-generated claims remain drafts and
 must be checked by the Verification Agent before use.
+
+## Draft legal research reports
+
+`LegalReportAssembler` in `backend.services` accepts the validated case,
+original `SummarizationRequest`, and `SummarizationResponse`. It deterministically
+copies evidence summaries, precedents, comparisons, draft findings, citations,
+and warnings into `LegalResearchReport`. The original request is required so
+direct callers cannot introduce unsupported references or citation excerpts.
+Missing optional sections become explicit limitations; reports always have
+`pending_verification` status.
+
+```python
+from backend.services import LegalReportAssembler, MarkdownLegalReportRenderer
+
+report = LegalReportAssembler().assemble(request.case, request, summary)
+markdown = MarkdownLegalReportRenderer().render(report)
+```
+
+The Markdown renderer makes no model calls and escapes supplied text so it is
+displayed as plain content rather than report structure. A later milestone may
+connect the assembler to the Coordinator and an API, and the Verification Agent
+may review the draft. Persistence, verified-status transitions, and PDF/DOCX
+export are not implemented.
