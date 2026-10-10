@@ -134,6 +134,23 @@ def test_openai_readiness_uses_the_selected_provider_key_name() -> None:
     ]
 
 
+def test_local_readiness_does_not_require_an_api_key() -> None:
+    report = prepare_dataset(
+        VALID_MANIFEST,
+        FIXTURES,
+        embedding_provider="local",
+        embedding_api_key_configured=False,
+    )
+
+    assert report.readiness.embedding_provider == "local"
+    assert report.readiness.embedding_api_key_configured is False
+    assert report.readiness.semantic_blocking_errors == []
+    assert (
+        report.readiness.semantic_status
+        is ReadinessStatus.READY_FOR_SEMANTIC_INDEXING
+    )
+
+
 def test_invalid_and_duplicate_dataset_is_not_ready() -> None:
     report = prepare_dataset(
         SUMMARY_MANIFEST,

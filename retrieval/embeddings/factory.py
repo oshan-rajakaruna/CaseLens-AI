@@ -7,12 +7,16 @@ from retrieval.embeddings.gemini import (
     EmbeddingConfigurationError as GeminiEmbeddingConfigurationError,
     GeminiEmbeddingService,
 )
+from retrieval.embeddings.local import (
+    LocalEmbeddingConfigurationError,
+    LocalEmbeddingService,
+)
 from retrieval.embeddings.openai import (
     OpenAIEmbeddingConfigurationError,
     OpenAIEmbeddingService,
 )
 
-SUPPORTED_EMBEDDING_PROVIDERS = frozenset({"gemini", "openai"})
+SUPPORTED_EMBEDDING_PROVIDERS = frozenset({"gemini", "local", "openai"})
 
 
 class EmbeddingProviderConfigurationError(ValueError):
@@ -25,7 +29,7 @@ def configured_embedding_provider() -> str:
     provider = getenv("EMBEDDING_PROVIDER", "gemini").strip().casefold()
     if provider not in SUPPORTED_EMBEDDING_PROVIDERS:
         raise EmbeddingProviderConfigurationError(
-            "EMBEDDING_PROVIDER must be 'gemini' or 'openai'"
+            "EMBEDDING_PROVIDER must be 'gemini', 'local', or 'openai'"
         )
     return provider
 
@@ -35,15 +39,18 @@ def create_embedding_service(provider: str | None = None) -> EmbeddingService:
 
     selected = (provider or configured_embedding_provider()).strip().casefold()
     try:
+        if selected == "local":
+            return LocalEmbeddingService()
         if selected == "openai":
             return OpenAIEmbeddingService()
         if selected == "gemini":
             return GeminiEmbeddingService()
         raise EmbeddingProviderConfigurationError(
-            "EMBEDDING_PROVIDER must be 'gemini' or 'openai'"
+            "EMBEDDING_PROVIDER must be 'gemini', 'local', or 'openai'"
         )
     except (
         GeminiEmbeddingConfigurationError,
+        LocalEmbeddingConfigurationError,
         OpenAIEmbeddingConfigurationError,
     ) as exc:
         raise EmbeddingProviderConfigurationError(
@@ -57,7 +64,7 @@ def validate_embedding_service_configuration(service: EmbeddingService) -> None:
     provider = service.provider.strip().casefold()
     if provider not in SUPPORTED_EMBEDDING_PROVIDERS:
         raise EmbeddingProviderConfigurationError(
-            "embedding provider must be 'gemini' or 'openai'"
+            "embedding provider must be 'gemini', 'local', or 'openai'"
         )
     if not service.model.strip():
         raise EmbeddingProviderConfigurationError(
@@ -67,6 +74,9 @@ def validate_embedding_service_configuration(service: EmbeddingService) -> None:
         raise EmbeddingProviderConfigurationError(
             f"{provider} embedding dimension must be a positive integer"
         )
+
+    if provider == "local":
+        return
 
     settings = getattr(service, "settings", None)
     api_key = getattr(settings, "api_key", "")

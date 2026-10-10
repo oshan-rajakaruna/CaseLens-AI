@@ -8,6 +8,7 @@ import pytest
 
 from retrieval.embeddings.checkpoint import EmbeddingCheckpointStore
 from retrieval.embeddings.gemini import GeminiEmbeddingService, GeminiEmbeddingSettings
+from retrieval.embeddings.local import LocalEmbeddingService, LocalEmbeddingSettings
 from retrieval.embeddings.openai import OpenAIEmbeddingService, OpenAIEmbeddingSettings
 from retrieval.preprocessing.metadata import LegalDocumentMetadata, LegalTextChunk
 from retrieval.vector_store import SemanticSearchService
@@ -86,6 +87,16 @@ def test_checkpoint_invalidates_provider_model_dimension_and_content(
     ) is None
     assert EmbeddingCheckpointStore(checkpoint_path).get(
         GeminiEmbeddingService(GeminiEmbeddingSettings(api_key="", dimension=3)),
+        chunk,
+    ) is None
+    assert EmbeddingCheckpointStore(checkpoint_path).get(
+        LocalEmbeddingService(
+            LocalEmbeddingSettings(
+                model="text-embedding-3-small",
+                dimension=3,
+                cache_dir="data/models/fastembed",
+            )
+        ),
         chunk,
     ) is None
     assert EmbeddingCheckpointStore(checkpoint_path).get(

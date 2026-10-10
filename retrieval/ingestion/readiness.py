@@ -79,7 +79,7 @@ def assess_index_readiness(
         else key_configured if selected_provider == "gemini" else False
     )
     semantic_blocking_errors = list(blocking_errors)
-    if not key_configured:
+    if selected_provider != "local" and not key_configured:
         key_name = (
             "OPENAI_API_KEY" if selected_provider == "openai" else "GEMINI_API_KEY"
         )

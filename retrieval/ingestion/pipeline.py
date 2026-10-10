@@ -14,6 +14,10 @@ from retrieval.embeddings.gemini import (
     EmbeddingConfigurationError as GeminiEmbeddingConfigurationError,
     GeminiEmbeddingError,
 )
+from retrieval.embeddings.local import (
+    LocalEmbeddingConfigurationError,
+    LocalEmbeddingError,
+)
 from retrieval.embeddings.openai import (
     OpenAIEmbeddingConfigurationError,
     OpenAIEmbeddingError,
@@ -237,12 +241,13 @@ class IngestionPipeline:
         except (
             EmbeddingProviderConfigurationError,
             GeminiEmbeddingConfigurationError,
+            LocalEmbeddingConfigurationError,
             OpenAIEmbeddingConfigurationError,
         ) as exc:
             report.errors.append(f"Semantic provider initialization failed: {exc}")
             if self.strict:
                 raise StrictIngestionError(report) from None
-        except (GeminiEmbeddingError, OpenAIEmbeddingError) as exc:
+        except (GeminiEmbeddingError, LocalEmbeddingError, OpenAIEmbeddingError) as exc:
             provider = report.embedding_provider or "unknown"
             report.errors.append(
                 f"Semantic provider request failed for '{provider}': {exc}"

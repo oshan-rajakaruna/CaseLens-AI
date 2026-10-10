@@ -199,7 +199,7 @@ def test_unknown_provider_error_is_explicit_and_safe(
     assert outcome.report.embedding_requests == 0
     assert outcome.report.errors == [
         "Semantic provider initialization failed: "
-        "EMBEDDING_PROVIDER must be 'gemini' or 'openai'"
+        "EMBEDDING_PROVIDER must be 'gemini', 'local', or 'openai'"
     ]
 
 
