@@ -1,7 +1,11 @@
 """Information-retrieval foundations for CaseLens."""
 
 from retrieval.bm25 import BM25Index, BM25Searcher
-from retrieval.embeddings import GeminiEmbeddingService
+from retrieval.embeddings import (
+    GeminiEmbeddingService,
+    OpenAIEmbeddingService,
+    create_embedding_service,
+)
 from retrieval.hybrid import HybridSearchService
 from retrieval.preprocessing import (
     BM25SearchResult,
@@ -20,6 +24,8 @@ __all__ = [
     "BM25SearchResult",
     "BM25Searcher",
     "GeminiEmbeddingService",
+    "OpenAIEmbeddingService",
+    "create_embedding_service",
     "HybridSearchResult",
     "HybridSearchService",
     "InMemoryVectorIndex",

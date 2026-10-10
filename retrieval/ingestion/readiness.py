@@ -22,6 +22,8 @@ class IndexReadinessReport(BaseModel):
     overall_status: ReadinessStatus
     bm25_status: ReadinessStatus
     semantic_status: ReadinessStatus
+    embedding_provider: str
+    embedding_api_key_configured: bool
     gemini_api_key_configured: bool
     blocking_errors: list[str] = Field(default_factory=list)
     semantic_blocking_errors: list[str] = Field(default_factory=list)
@@ -32,7 +34,9 @@ def assess_index_readiness(
     summary: DatasetSummary,
     ingestion_report: IngestionReport,
     *,
-    gemini_api_key_configured: bool,
+    gemini_api_key_configured: bool | None = None,
+    embedding_provider: str = "gemini",
+    embedding_api_key_configured: bool | None = None,
 ) -> IndexReadinessReport:
     """Assess readiness from manifest analysis and a no-index ingestion dry-run."""
 
@@ -63,9 +67,23 @@ def assess_index_readiness(
         )
 
     bm25_ready = not blocking_errors
+    selected_provider = embedding_provider.strip().casefold()
+    key_configured = (
+        embedding_api_key_configured
+        if embedding_api_key_configured is not None
+        else bool(gemini_api_key_configured)
+    )
+    gemini_key_configured = (
+        bool(gemini_api_key_configured)
+        if gemini_api_key_configured is not None
+        else key_configured if selected_provider == "gemini" else False
+    )
     semantic_blocking_errors = list(blocking_errors)
-    if not gemini_api_key_configured:
-        semantic_blocking_errors.append("GEMINI_API_KEY is not configured")
+    if not key_configured:
+        key_name = (
+            "OPENAI_API_KEY" if selected_provider == "openai" else "GEMINI_API_KEY"
+        )
+        semantic_blocking_errors.append(f"{key_name} is not configured")
     semantic_ready = not semantic_blocking_errors
 
     bm25_status = (
@@ -87,7 +105,9 @@ def assess_index_readiness(
         overall_status=overall_status,
         bm25_status=bm25_status,
         semantic_status=semantic_status,
-        gemini_api_key_configured=gemini_api_key_configured,
+        embedding_provider=selected_provider,
+        embedding_api_key_configured=key_configured,
+        gemini_api_key_configured=gemini_key_configured,
         blocking_errors=blocking_errors,
         semantic_blocking_errors=semantic_blocking_errors,
         warnings=warnings,

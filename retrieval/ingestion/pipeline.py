@@ -185,6 +185,7 @@ class IngestionPipeline:
         *,
         semantic: bool = False,
         embedding_service: EmbeddingService | None = None,
+        checkpoint_path: str | Path | None = None,
     ) -> IngestionOutcome:
         """Build BM25 and optional semantic indexes for an ingestion outcome."""
 
@@ -207,8 +208,17 @@ class IngestionPipeline:
             outcome.semantic_search = build_semantic_index(
                 outcome.chunks,
                 embedding_service=embedding_service,
+                checkpoint_path=checkpoint_path,
             )
             report.semantic_indexed_chunks = len(outcome.semantic_search.index)
+            service = outcome.semantic_search.embedding_service
+            report.embedding_provider = getattr(service, "provider", None)
+            report.embedding_model = getattr(service, "model", None)
+            report.embedding_dimension = getattr(service, "dimension", None)
+            report.embedding_requests = getattr(service, "request_count", 0)
+            report.embedding_retries = getattr(service, "retry_count", 0)
+            report.semantic_checkpoint_hits = outcome.semantic_search.checkpoint_hits
+            report.semantic_new_embeddings = outcome.semantic_search.new_embeddings
         except Exception:
             # Provider errors are intentionally converted to a stable message;
             # local paths, credentials, and document contents are not exposed.

@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 
 from retrieval.embeddings.base import EmbeddingService
+from retrieval.embeddings.checkpoint import EmbeddingCheckpointStore
 from retrieval.preprocessing.metadata import (
     LegalTextChunk,
     SemanticSearchResult,
@@ -13,9 +14,17 @@ from retrieval.vector_store.index import InMemoryVectorIndex
 class SemanticSearchService:
     """Build and search a replaceable vector index using an embedding service."""
 
-    def __init__(self, embedding_service: EmbeddingService) -> None:
+    def __init__(
+        self,
+        embedding_service: EmbeddingService,
+        *,
+        checkpoint: EmbeddingCheckpointStore | None = None,
+    ) -> None:
         self.embedding_service = embedding_service
         self.index = InMemoryVectorIndex(embedding_service.dimension)
+        self.checkpoint = checkpoint
+        self.checkpoint_hits = 0
+        self.new_embeddings = 0
 
     def build_index(self, chunks: Iterable[LegalTextChunk]) -> None:
         """Replace the semantic index, embedding each unique chunk once.
@@ -33,14 +42,64 @@ class SemanticSearchService:
                 )
             unique_chunks.setdefault(chunk.chunk_id, chunk)
 
-        replacement = InMemoryVectorIndex(self.embedding_service.dimension)
-        for chunk in unique_chunks.values():
-            vector = self.embedding_service.embed_document(
-                chunk.chunk_text,
-                title=chunk.metadata.case_name,
+        chunks_to_embed = list(unique_chunks.values())
+        vectors_by_chunk_id: dict[str, list[float]] = {}
+        missing_chunks: list[LegalTextChunk] = []
+        if self.checkpoint is not None:
+            for chunk in chunks_to_embed:
+                cached = self.checkpoint.get(self.embedding_service, chunk)
+                if cached is None:
+                    missing_chunks.append(chunk)
+                else:
+                    vectors_by_chunk_id[chunk.chunk_id] = cached
+        else:
+            missing_chunks = chunks_to_embed
+
+        batch_embedder = getattr(self.embedding_service, "embed_documents", None)
+        if callable(batch_embedder):
+            batch_size = getattr(
+                self.embedding_service,
+                "batch_size",
+                len(missing_chunks) or 1,
             )
-            replacement.add(vector, chunk)
+            for start in range(0, len(missing_chunks), batch_size):
+                chunk_batch = missing_chunks[start : start + batch_size]
+                vectors = batch_embedder(
+                    [
+                        (chunk.chunk_text, chunk.metadata.case_name)
+                        for chunk in chunk_batch
+                    ]
+                )
+                if len(vectors) != len(chunk_batch):
+                    raise ValueError(
+                        "Embedding provider returned an unexpected batch size"
+                    )
+                for vector, chunk in zip(vectors, chunk_batch, strict=True):
+                    vectors_by_chunk_id[chunk.chunk_id] = vector
+                if self.checkpoint is not None:
+                    self.checkpoint.put_many(
+                        self.embedding_service,
+                        zip(chunk_batch, vectors, strict=True),
+                    )
+        else:
+            for chunk in missing_chunks:
+                vector = self.embedding_service.embed_document(
+                    chunk.chunk_text,
+                    title=chunk.metadata.case_name,
+                )
+                vectors_by_chunk_id[chunk.chunk_id] = vector
+                if self.checkpoint is not None:
+                    self.checkpoint.put_many(
+                        self.embedding_service,
+                        [(chunk, vector)],
+                    )
+
+        replacement = InMemoryVectorIndex(self.embedding_service.dimension)
+        for chunk in chunks_to_embed:
+            replacement.add(vectors_by_chunk_id[chunk.chunk_id], chunk)
         self.index = replacement
+        self.checkpoint_hits = len(chunks_to_embed) - len(missing_chunks)
+        self.new_embeddings = len(missing_chunks)
 
     def search(self, query: str, top_k: int = 5) -> list[SemanticSearchResult]:
         """Embed a query and return structured cosine-similarity results."""

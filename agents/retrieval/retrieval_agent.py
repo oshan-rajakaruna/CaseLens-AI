@@ -8,7 +8,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from retrieval.bm25 import BM25Index, BM25Searcher
-from retrieval.embeddings import EmbeddingService, GeminiEmbeddingService
+from retrieval.embeddings import EmbeddingService, create_embedding_service
 from retrieval.hybrid import (
     DEFAULT_BM25_WEIGHT,
     DEFAULT_CANDIDATE_MULTIPLIER,
@@ -37,7 +37,7 @@ class RetrievalAgent:
         self.index = BM25Index().build(chunks or [])
         self._searcher = BM25Searcher(self.index)
         self._semantic = SemanticSearchService(
-            embedding_service or GeminiEmbeddingService()
+            embedding_service or create_embedding_service()
         )
         self._hybrid = HybridSearchService(
             self._searcher,

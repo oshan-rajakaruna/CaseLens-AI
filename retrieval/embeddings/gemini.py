@@ -1,8 +1,6 @@
 """Google Gemini embeddings for asymmetric legal-document retrieval."""
 
 from dataclasses import dataclass
-import math
-from numbers import Real
 from os import getenv
 from typing import Any
 
@@ -10,8 +8,18 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from retrieval.embeddings.common import (
+    content_hash,
+    execute_with_retries,
+    is_transient_embedding_error,
+    validate_embedding_values,
+)
+
 DEFAULT_EMBEDDING_MODEL = "gemini-embedding-2"
 DEFAULT_EMBEDDING_DIMENSION = 768
+DEFAULT_EMBEDDING_BATCH_SIZE = 100
+DEFAULT_EMBEDDING_MAX_RETRIES = 4
+DEFAULT_EMBEDDING_RETRY_BASE_SECONDS = 1.0
 
 
 class GeminiEmbeddingError(RuntimeError):
@@ -110,21 +118,65 @@ class GeminiEmbeddingService:
     for deterministic tests without making an external request.
     """
 
+    provider = "gemini"
+
     def __init__(
         self,
         settings: GeminiEmbeddingSettings | None = None,
         *,
         client: Any | None = None,
+        batch_size: int = DEFAULT_EMBEDDING_BATCH_SIZE,
+        max_retries: int = DEFAULT_EMBEDDING_MAX_RETRIES,
+        retry_base_seconds: float = DEFAULT_EMBEDDING_RETRY_BASE_SECONDS,
     ) -> None:
+        if isinstance(batch_size, bool) or not isinstance(batch_size, int):
+            raise EmbeddingConfigurationError("batch_size must be an integer")
+        if batch_size <= 0:
+            raise EmbeddingConfigurationError("batch_size must be greater than zero")
+        if isinstance(max_retries, bool) or not isinstance(max_retries, int):
+            raise EmbeddingConfigurationError("max_retries must be an integer")
+        if max_retries < 0:
+            raise EmbeddingConfigurationError("max_retries cannot be negative")
+        if retry_base_seconds < 0:
+            raise EmbeddingConfigurationError(
+                "retry_base_seconds cannot be negative"
+            )
         self.settings = settings or GeminiEmbeddingSettings.from_environment()
         self.dimension = self.settings.dimension
         self.model = self.settings.model.strip()
+        self.batch_size = batch_size
+        self.max_retries = max_retries
+        self.retry_base_seconds = float(retry_base_seconds)
         self._client = client
+        self.request_count = 0
+        self.retry_count = 0
+        self.successful_embedding_count = 0
+        self.failed_embedding_count = 0
+
+    def document_content_hash(self, text: str, title: str | None = None) -> str:
+        """Hash the exact provider-formatted document input for checkpointing."""
+
+        return content_hash(format_document_for_embedding(text, title))
 
     def embed_document(self, text: str, title: str | None = None) -> list[float]:
         """Embed one retrieval document using its optional case title."""
 
         return self._embed(format_document_for_embedding(text, title))
+
+    def embed_documents(
+        self,
+        documents: list[tuple[str, str | None]],
+    ) -> list[list[float]]:
+        """Embed one bounded document batch in a single provider request."""
+
+        if len(documents) > self.batch_size:
+            raise ValueError(
+                f"Document batch exceeds configured batch_size of {self.batch_size}"
+            )
+        prepared = [
+            format_document_for_embedding(text, title) for text, title in documents
+        ]
+        return self._embed_many(prepared)
 
     def embed_query(self, query: str) -> list[float]:
         """Embed one search query using the asymmetric retrieval format."""
@@ -148,41 +200,71 @@ class GeminiEmbeddingService:
         return self._client
 
     def _embed(self, prepared_text: str) -> list[float]:
+        return self._embed_many([prepared_text])[0]
+
+    def _embed_many(self, prepared_texts: list[str]) -> list[list[float]]:
+        if not prepared_texts:
+            return []
         client = self._get_client()
+
+        def request() -> Any:
+            return client.models.embed_content(
+                    model=self.model,
+                    contents=(
+                        prepared_texts[0]
+                        if len(prepared_texts) == 1
+                        else [
+                            types.UserContent(
+                                parts=[types.Part.from_text(text=text)]
+                            )
+                            for text in prepared_texts
+                        ]
+                    ),
+                    config=types.EmbedContentConfig(
+                        output_dimensionality=self.dimension
+                    ),
+                )
+
         try:
-            response = client.models.embed_content(
-                model=self.model,
-                contents=prepared_text,
-                config=types.EmbedContentConfig(
-                    output_dimensionality=self.dimension
-                ),
+            response = execute_with_retries(
+                request,
+                max_retries=self.max_retries,
+                retry_base_seconds=self.retry_base_seconds,
+                on_attempt=self._record_attempt,
+                on_retry=self._record_retry,
             )
         except Exception as exc:
+            self.failed_embedding_count += len(prepared_texts)
             raise GeminiEmbeddingError("Gemini embedding request failed") from exc
 
         embeddings = getattr(response, "embeddings", None)
-        if not embeddings or len(embeddings) != 1:
+        if not embeddings or len(embeddings) != len(prepared_texts):
+            self.failed_embedding_count += len(prepared_texts)
             raise EmbeddingResponseError(
                 "Gemini returned an unexpected number of embeddings"
             )
-        values = getattr(embeddings[0], "values", None)
-        if values is None:
-            raise EmbeddingResponseError("Gemini returned no embedding values")
-        if len(values) != self.dimension:
-            raise EmbeddingResponseError(
-                "Gemini embedding dimension does not match configured dimension"
-            )
+        try:
+            vectors = [self._validate_values(embedding) for embedding in embeddings]
+        except EmbeddingResponseError:
+            self.failed_embedding_count += len(prepared_texts)
+            raise
+        self.successful_embedding_count += len(vectors)
+        return vectors
 
-        vector: list[float] = []
-        for value in values:
-            if isinstance(value, bool) or not isinstance(value, Real):
-                raise EmbeddingResponseError(
-                    "Gemini embedding contains a non-numeric value"
-                )
-            numeric_value = float(value)
-            if not math.isfinite(numeric_value):
-                raise EmbeddingResponseError(
-                    "Gemini embedding contains a non-finite value"
-                )
-            vector.append(numeric_value)
-        return vector
+    def _validate_values(self, embedding: Any) -> list[float]:
+        return validate_embedding_values(
+            getattr(embedding, "values", None),
+            self.dimension,
+            provider_name="Gemini",
+            error_type=EmbeddingResponseError,
+        )
+
+    def _record_attempt(self) -> None:
+        self.request_count += 1
+
+    def _record_retry(self) -> None:
+        self.retry_count += 1
+
+    @staticmethod
+    def _is_transient_error(error: Exception) -> bool:
+        return is_transient_embedding_error(error)

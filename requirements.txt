@@ -5,4 +5,5 @@ python-dotenv>=1.1,<2.0
 pytest>=8.4,<10.0
 httpx2>=2.13,<3.0
 google-genai>=2.29,<3.0
+openai>=2.0,<3.0
 pypdf>=6.19,<7.0

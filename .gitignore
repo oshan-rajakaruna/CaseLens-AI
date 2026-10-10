@@ -31,3 +31,4 @@ data/legal/raw/*
 data/legal/processed/*
 !data/legal/processed/.gitkeep
 !data/legal/processed/README.md
+data/legal/indexes/*

@@ -4,6 +4,10 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from retrieval.embeddings.factory import (
+    configured_embedding_provider,
+    create_embedding_service,
+)
 from retrieval.embeddings.gemini import (
     EmbeddingConfigurationError,
     GeminiEmbeddingSettings,
@@ -33,6 +37,15 @@ def _gemini_api_key_configured() -> bool:
     return bool(settings.api_key.strip())
 
 
+def _embedding_configuration() -> tuple[str, bool]:
+    """Inspect the selected provider without logging keys or making a call."""
+
+    provider = configured_embedding_provider()
+    service = create_embedding_service(provider)
+    settings = getattr(service, "settings", None)
+    return provider, bool(getattr(settings, "api_key", "").strip())
+
+
 def prepare_dataset(
     manifest_path: str | Path,
     input_dir: str | Path,
@@ -40,6 +53,8 @@ def prepare_dataset(
     chunk_size: int = 300,
     overlap: int = 50,
     gemini_api_key_configured: bool | None = None,
+    embedding_provider: str | None = None,
+    embedding_api_key_configured: bool | None = None,
 ) -> DatasetPreparationReport:
     """Summarize and dry-run a dataset without building either index."""
 
@@ -54,15 +69,22 @@ def prepare_dataset(
         dry_run=True,
         semantic_requested=True,
     )
-    key_configured = (
-        _gemini_api_key_configured()
-        if gemini_api_key_configured is None
-        else gemini_api_key_configured
-    )
+    if gemini_api_key_configured is not None:
+        selected_provider = "gemini"
+        key_configured = gemini_api_key_configured
+    elif embedding_provider is not None and embedding_api_key_configured is not None:
+        selected_provider = embedding_provider
+        key_configured = embedding_api_key_configured
+    else:
+        selected_provider, key_configured = _embedding_configuration()
     readiness = assess_index_readiness(
         summary,
         outcome.report,
-        gemini_api_key_configured=key_configured,
+        embedding_provider=selected_provider,
+        embedding_api_key_configured=key_configured,
+        gemini_api_key_configured=(
+            key_configured if selected_provider == "gemini" else None
+        ),
     )
     return DatasetPreparationReport(
         summary=summary,

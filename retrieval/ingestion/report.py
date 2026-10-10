@@ -34,6 +34,13 @@ class IngestionReport(BaseModel):
     bm25_indexed_chunks: int = Field(default=0, ge=0)
     semantic_chunks_planned: int = Field(default=0, ge=0)
     semantic_indexed_chunks: int = Field(default=0, ge=0)
+    semantic_checkpoint_hits: int = Field(default=0, ge=0)
+    semantic_new_embeddings: int = Field(default=0, ge=0)
+    embedding_provider: str | None = None
+    embedding_model: str | None = None
+    embedding_dimension: int | None = Field(default=None, ge=1)
+    embedding_requests: int = Field(default=0, ge=0)
+    embedding_retries: int = Field(default=0, ge=0)
     documents: list[DocumentIngestionReport] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)

@@ -37,6 +37,33 @@ class _FakeClient:
         self.models = models
 
 
+class _FakeBatchModels:
+    def __init__(self, vectors: list[list[object]]) -> None:
+        self.vectors = vectors
+        self.calls: list[dict[str, object]] = []
+
+    def embed_content(self, **kwargs: object) -> SimpleNamespace:
+        self.calls.append(kwargs)
+        return SimpleNamespace(
+            embeddings=[SimpleNamespace(values=values) for values in self.vectors]
+        )
+
+
+class _TransientProviderError(RuntimeError):
+    code = 429
+
+
+class _RetryOnceModels:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def embed_content(self, **kwargs: object) -> SimpleNamespace:
+        self.calls += 1
+        if self.calls == 1:
+            raise _TransientProviderError("rate limited")
+        return SimpleNamespace(embeddings=[SimpleNamespace(values=[1, 2, 3])])
+
+
 def test_retrieval_text_formatting_is_exact_and_isolated() -> None:
     assert format_query_for_embedding(" employment termination ") == (
         "task: search result | query: employment termination"
@@ -114,6 +141,46 @@ def test_service_calls_official_sdk_shape_and_returns_numeric_vector() -> None:
         "title: Synthetic Matter | text: Legal text"
     )
     assert models.calls[0]["config"].output_dimensionality == 3  # type: ignore[union-attr]
+
+
+def test_service_batches_documents_and_reports_request_counts() -> None:
+    models = _FakeBatchModels([[1, 2, 3], [4, 5, 6]])
+    service = GeminiEmbeddingService(
+        GeminiEmbeddingSettings(api_key="", dimension=3),
+        client=_FakeClient(models),  # type: ignore[arg-type]
+        batch_size=2,
+    )
+
+    vectors = service.embed_documents(
+        [("First legal text", "First Matter"), ("Second legal text", None)]
+    )
+
+    assert vectors == [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    contents = models.calls[0]["contents"]
+    assert [content.parts[0].text for content in contents] == [  # type: ignore[union-attr]
+        "title: First Matter | text: First legal text",
+        "title: none | text: Second legal text",
+    ]
+    assert service.request_count == 1
+    assert service.retry_count == 0
+    assert service.successful_embedding_count == 2
+    assert service.failed_embedding_count == 0
+
+
+def test_service_retries_transient_provider_errors_with_a_bound() -> None:
+    models = _RetryOnceModels()
+    service = GeminiEmbeddingService(
+        GeminiEmbeddingSettings(api_key="", dimension=3),
+        client=_FakeClient(models),  # type: ignore[arg-type]
+        max_retries=1,
+        retry_base_seconds=0,
+    )
+
+    assert service.embed_query("employment") == [1.0, 2.0, 3.0]
+    assert models.calls == 2
+    assert service.request_count == 2
+    assert service.retry_count == 1
+    assert service.successful_embedding_count == 1
 
 
 @pytest.mark.parametrize(

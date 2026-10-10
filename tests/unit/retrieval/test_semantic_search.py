@@ -59,6 +59,29 @@ def test_semantic_index_embeds_duplicate_chunk_only_once() -> None:
     assert len(embeddings.document_calls) == 1
 
 
+def test_semantic_index_uses_provider_batching_when_available() -> None:
+    class BatchEmbeddingService(DeterministicEmbeddingService):
+        batch_size = 2
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.batch_calls: list[list[tuple[str, str | None]]] = []
+
+        def embed_documents(
+            self,
+            documents: list[tuple[str, str | None]],
+        ) -> list[list[float]]:
+            self.batch_calls.append(documents)
+            return [self.embed_document(text, title) for text, title in documents]
+
+    embeddings = BatchEmbeddingService()
+    service = SemanticSearchService(embeddings)
+    service.build_index(_chunks())
+
+    assert [len(batch) for batch in embeddings.batch_calls] == [2, 1]
+    assert len(service.index) == 3
+
+
 def test_semantic_search_handles_empty_inputs_and_large_top_k() -> None:
     embeddings = DeterministicEmbeddingService()
     service = SemanticSearchService(embeddings)

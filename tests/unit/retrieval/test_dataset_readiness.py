@@ -119,6 +119,21 @@ def test_valid_dataset_is_semantic_ready_when_configuration_is_available() -> No
     )
 
 
+def test_openai_readiness_uses_the_selected_provider_key_name() -> None:
+    report = prepare_dataset(
+        VALID_MANIFEST,
+        FIXTURES,
+        embedding_provider="openai",
+        embedding_api_key_configured=False,
+    )
+
+    assert report.readiness.embedding_provider == "openai"
+    assert report.readiness.embedding_api_key_configured is False
+    assert report.readiness.semantic_blocking_errors == [
+        "OPENAI_API_KEY is not configured"
+    ]
+
+
 def test_invalid_and_duplicate_dataset_is_not_ready() -> None:
     report = prepare_dataset(
         SUMMARY_MANIFEST,

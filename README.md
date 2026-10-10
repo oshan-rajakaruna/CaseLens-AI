@@ -71,17 +71,27 @@ Not implemented yet:
 - Production vector database persistence.
 - Advanced reranking.
 
-Semantic indexing and queries call Gemini only when their explicit methods are
-used. BM25 remains independent and does not call Gemini. Configure backend-only
-embedding access with:
+Semantic indexing and queries call the selected provider only when their
+explicit methods are used. BM25 remains independent. Configure backend-only
+OpenAI embedding access with:
 
 ```dotenv
+EMBEDDING_PROVIDER=openai
+OPENAI_API_KEY=
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_EMBEDDING_DIMENSION=1536
+```
+
+Gemini remains supported with:
+
+```dotenv
+EMBEDDING_PROVIDER=gemini
 GEMINI_API_KEY=
 GEMINI_EMBEDDING_MODEL=gemini-embedding-2
 GEMINI_EMBEDDING_DIMENSION=768
 ```
 
-Never place a real Gemini key in source control or frontend configuration.
+Never place a real provider key in source control or frontend configuration.
 
 Hybrid retrieval defaults to equal BM25 and semantic weights (`0.5` / `0.5`)
 and retrieves twice the requested result count from each mode before fusion.
@@ -201,7 +211,7 @@ python -m retrieval.ingestion.run `
   --dry-run
 ```
 
-Build the in-memory BM25 index (the default, with no Gemini requirement):
+Build the in-memory BM25 index (the default, with no embedding-provider requirement):
 
 ```powershell
 python -m retrieval.ingestion.run `
@@ -209,14 +219,17 @@ python -m retrieval.ingestion.run `
   --input-dir data/legal/raw
 ```
 
-Semantic indexing is opt-in. It reports the number of chunks before requests,
-then uses the existing Gemini embedding service and in-memory vector index:
+Semantic indexing is opt-in. It uses `EMBEDDING_PROVIDER`, the existing
+in-memory vector index, and an optional resumable checkpoint. Checkpoint keys
+include provider, model, dimension, chunk ID, and formatted-content hash:
 
 ```powershell
 python -m retrieval.ingestion.run `
   --manifest data/legal/metadata/manifest.json `
   --input-dir data/legal/raw `
   --semantic `
+  --strict `
+  --embedding-checkpoint data/legal/indexes/semantic-embeddings.jsonl `
   --chunk-size 300 `
   --chunk-overlap 50
 ```
@@ -224,10 +237,10 @@ python -m retrieval.ingestion.run `
 Add `--strict` to stop on the first invalid document; otherwise the batch
 continues and reports each processed, failed, or skipped entry. The command
 emits a structured JSON report with document and chunk totals plus safe
-per-document errors. It does not log source text. Keep `GEMINI_API_KEY` only in
-the ignored backend `.env`, never in manifests, frontend configuration, logs,
-or source control. Do not commit confidential, copyrighted, or unreviewed
-documents.
+per-document errors. It does not log source text. Keep provider API keys only
+in the ignored backend `.env`, never in manifests, frontend configuration,
+logs, or source control. Do not commit confidential, copyrighted, or
+unreviewed documents.
 
 The team must review source rights, provenance, extraction quality, and dataset
 scope before relying on an index. **CaseLens does NOT claim complete coverage

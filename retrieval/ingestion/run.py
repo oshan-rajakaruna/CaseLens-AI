@@ -23,7 +23,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Validate and count chunks without building indexes or calling Gemini.",
+        help="Validate and count chunks without building indexes or calling a provider.",
     )
     parser.add_argument(
         "--strict",
@@ -33,7 +33,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--semantic",
         action="store_true",
-        help="Explicitly opt in to Gemini semantic indexing after BM25.",
+        help="Explicitly opt in to configured-provider semantic indexing after BM25.",
+    )
+    parser.add_argument(
+        "--embedding-checkpoint",
+        type=Path,
+        help="Optional resumable JSONL embedding checkpoint path.",
     )
     parser.add_argument("--chunk-size", type=int, default=300)
     parser.add_argument(
@@ -64,7 +69,11 @@ def main(argv: list[str] | None = None) -> int:
                 + ("; dry-run makes no API calls." if arguments.dry_run else "."),
                 file=sys.stderr,
             )
-        pipeline.build_indexes(outcome, semantic=arguments.semantic)
+        pipeline.build_indexes(
+            outcome,
+            semantic=arguments.semantic,
+            checkpoint_path=arguments.embedding_checkpoint,
+        )
     except ManifestLoadError as exc:
         print(f"Ingestion failed: {exc}", file=sys.stderr)
         return 2
