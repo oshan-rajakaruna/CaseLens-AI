@@ -25,8 +25,11 @@ def api_client() -> Iterator[tuple[TestClient, FakeRetrievalAgent]]:
 
 def test_retrieval_endpoint_exists_and_defaults_to_hybrid(
     api_client: tuple[TestClient, FakeRetrievalAgent],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     client, agent = api_client
+    monkeypatch.delenv("HYBRID_BM25_WEIGHT", raising=False)
+    monkeypatch.delenv("HYBRID_SEMANTIC_WEIGHT", raising=False)
 
     response = client.post(
         "/api/retrieval/search",
@@ -36,6 +39,10 @@ def test_retrieval_endpoint_exists_and_defaults_to_hybrid(
     assert response.status_code == 200
     assert response.json()["mode"] == "hybrid"
     assert agent.calls[0]["mode"] == "hybrid"
+    assert agent.calls[0]["bm25_weight"] == 0.8
+    assert agent.calls[0]["semantic_weight"] == 0.2
+    assert agent.calls[0]["diversify"] is True
+    assert agent.calls[0]["max_chunks_per_document"] is None
 
 
 @pytest.mark.parametrize(
@@ -96,7 +103,34 @@ def test_hybrid_request_preserves_filters_and_weights(
         "filters": {"year": 2025, "legal_category": "employment"},
         "bm25_weight": 0.7,
         "semantic_weight": 0.3,
+        "diversify": True,
+        "max_chunks_per_document": None,
     }
+
+
+def test_retrieval_diversification_can_be_overridden_or_disabled(
+    api_client: tuple[TestClient, FakeRetrievalAgent],
+) -> None:
+    client, agent = api_client
+
+    override = client.post(
+        "/api/retrieval/search",
+        json={
+            "query": "termination",
+            "max_chunks_per_document": 1,
+        },
+    )
+    disabled = client.post(
+        "/api/retrieval/search",
+        json={"query": "termination", "diversify": False},
+    )
+
+    assert override.status_code == 200
+    assert agent.calls[0]["diversify"] is True
+    assert agent.calls[0]["max_chunks_per_document"] == 1
+    assert disabled.status_code == 200
+    assert agent.calls[1]["diversify"] is False
+    assert agent.calls[1]["max_chunks_per_document"] is None
 
 
 @pytest.mark.parametrize(
@@ -107,6 +141,8 @@ def test_hybrid_request_preserves_filters_and_weights(
         {"query": "termination", "top_k": 0},
         {"query": "termination", "top_k": True},
         {"query": "termination", "bm25_weight": True},
+        {"query": "termination", "max_chunks_per_document": 0},
+        {"query": "termination", "max_chunks_per_document": True},
         {
             "query": "termination",
             "mode": "hybrid",

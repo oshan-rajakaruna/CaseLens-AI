@@ -101,7 +101,13 @@ class SemanticSearchService:
         self.checkpoint_hits = len(chunks_to_embed) - len(missing_chunks)
         self.new_embeddings = len(missing_chunks)
 
-    def search(self, query: str, top_k: int = 5) -> list[SemanticSearchResult]:
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        *,
+        max_chunks_per_document: int | None = None,
+    ) -> list[SemanticSearchResult]:
         """Embed a query and return structured cosine-similarity results."""
 
         if not isinstance(query, str):
@@ -114,7 +120,11 @@ class SemanticSearchService:
             return []
 
         query_vector = self.embedding_service.embed_query(query)
-        matches = self.index.search(query_vector, top_k=top_k)
+        matches = self.index.search(
+            query_vector,
+            top_k=top_k,
+            max_chunks_per_document=max_chunks_per_document,
+        )
         return [
             SemanticSearchResult(
                 rank=rank,

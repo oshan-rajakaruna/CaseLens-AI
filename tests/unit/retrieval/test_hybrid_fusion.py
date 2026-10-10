@@ -2,12 +2,57 @@
 
 import pytest
 
-from retrieval.hybrid.fusion import fuse_scores, normalize_weights
+from retrieval.hybrid.fusion import (
+    DEFAULT_BM25_WEIGHT,
+    DEFAULT_SEMANTIC_WEIGHT,
+    fuse_scores,
+    get_default_hybrid_weights,
+    normalize_weights,
+)
 
 
-def test_default_fusion_uses_equal_weights() -> None:
-    assert fuse_scores(1.0, 0.0) == pytest.approx(0.5)
-    assert fuse_scores(0.25, 0.75) == pytest.approx(0.5)
+def test_default_fusion_uses_evaluated_weights(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("HYBRID_BM25_WEIGHT", raising=False)
+    monkeypatch.delenv("HYBRID_SEMANTIC_WEIGHT", raising=False)
+
+    assert DEFAULT_BM25_WEIGHT == 0.8
+    assert DEFAULT_SEMANTIC_WEIGHT == 0.2
+    assert get_default_hybrid_weights() == pytest.approx((0.8, 0.2))
+    assert fuse_scores(1.0, 0.0) == pytest.approx(0.8)
+    assert fuse_scores(0.25, 0.75) == pytest.approx(0.35)
+
+
+def test_default_weights_can_be_configured_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("HYBRID_BM25_WEIGHT", "0.7")
+    monkeypatch.setenv("HYBRID_SEMANTIC_WEIGHT", "0.3")
+
+    assert get_default_hybrid_weights() == pytest.approx((0.7, 0.3))
+    assert fuse_scores(1.0, 0.0) == pytest.approx(0.7)
+
+
+@pytest.mark.parametrize(
+    ("bm25_weight", "semantic_weight", "message"),
+    [
+        ("0.8", "0.8", "sum to 1.0"),
+        ("-0.1", "1.1", "cannot be negative"),
+        ("high", "0.2", "must be numeric"),
+    ],
+)
+def test_invalid_environment_weight_configuration_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+    bm25_weight: str,
+    semantic_weight: str,
+    message: str,
+) -> None:
+    monkeypatch.setenv("HYBRID_BM25_WEIGHT", bm25_weight)
+    monkeypatch.setenv("HYBRID_SEMANTIC_WEIGHT", semantic_weight)
+
+    with pytest.raises(ValueError, match=message):
+        get_default_hybrid_weights()
 
 
 def test_weights_are_normalized_internally() -> None:
@@ -15,6 +60,20 @@ def test_weights_are_normalized_internally() -> None:
     assert fuse_scores(1.0, 0.0, bm25_weight=2.0, semantic_weight=1.0) == (
         pytest.approx(2 / 3)
     )
+
+
+def test_explicit_weights_override_environment_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("HYBRID_BM25_WEIGHT", "invalid")
+    monkeypatch.setenv("HYBRID_SEMANTIC_WEIGHT", "invalid")
+
+    assert fuse_scores(
+        1.0,
+        0.0,
+        bm25_weight=0.6,
+        semantic_weight=0.4,
+    ) == pytest.approx(0.6)
 
 
 @pytest.mark.parametrize(

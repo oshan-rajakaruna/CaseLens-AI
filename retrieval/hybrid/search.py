@@ -5,11 +5,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from retrieval.bm25.search import BM25Searcher
+from retrieval.diversification import diversify_ranked_results
 from retrieval.hybrid.fusion import (
-    DEFAULT_BM25_WEIGHT,
-    DEFAULT_SEMANTIC_WEIGHT,
     fuse_scores,
-    normalize_weights,
+    resolve_hybrid_weights,
 )
 from retrieval.hybrid.normalize import min_max_normalize
 from retrieval.preprocessing.metadata import (
@@ -58,9 +57,10 @@ class HybridSearchService:
         top_k: int = 5,
         *,
         filters: Mapping[str, Any] | None = None,
-        bm25_weight: float = DEFAULT_BM25_WEIGHT,
-        semantic_weight: float = DEFAULT_SEMANTIC_WEIGHT,
+        bm25_weight: float | None = None,
+        semantic_weight: float | None = None,
         candidate_multiplier: int | None = None,
+        max_chunks_per_document: int | None = None,
     ) -> list[HybridSearchResult]:
         """Retrieve larger candidate pools and return a fused top-k ranking."""
 
@@ -70,7 +70,10 @@ class HybridSearchService:
             raise TypeError("top_k must be an integer")
         if top_k < 0:
             raise ValueError("top_k cannot be negative")
-        normalized_weights = normalize_weights(bm25_weight, semantic_weight)
+        normalized_weights = resolve_hybrid_weights(
+            bm25_weight,
+            semantic_weight,
+        )
         validated_filters = self._validate_filters(filters)
         multiplier = self._validate_candidate_multiplier(
             candidate_multiplier
@@ -124,9 +127,15 @@ class HybridSearchService:
                 result.chunk_id,
             )
         )
+        selected = diversify_ranked_results(
+            ranked,
+            top_k=top_k,
+            max_chunks_per_document=max_chunks_per_document,
+            document_id=lambda result: result.document_id,
+        )
         return [
             result.model_copy(update={"rank": rank})
-            for rank, result in enumerate(ranked[:top_k], start=1)
+            for rank, result in enumerate(selected, start=1)
         ]
 
     @staticmethod

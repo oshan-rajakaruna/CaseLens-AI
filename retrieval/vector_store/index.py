@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import math
 from numbers import Real
 
+from retrieval.diversification import diversify_ranked_results
 from retrieval.preprocessing.metadata import LegalTextChunk
 
 
@@ -62,7 +63,13 @@ class InMemoryVectorIndex:
         self._entries.append(_VectorEntry(normalized, chunk))
         self._chunk_ids.add(chunk.chunk_id)
 
-    def search(self, query_vector: Sequence[float], top_k: int = 5) -> list[VectorMatch]:
+    def search(
+        self,
+        query_vector: Sequence[float],
+        top_k: int = 5,
+        *,
+        max_chunks_per_document: int | None = None,
+    ) -> list[VectorMatch]:
         """Return the highest cosine-similarity matches with stable tie ordering."""
 
         if isinstance(top_k, bool) or not isinstance(top_k, int):
@@ -100,7 +107,12 @@ class InMemoryVectorIndex:
                 match.chunk.chunk_id,
             )
         )
-        return matches[:top_k]
+        return diversify_ranked_results(
+            matches,
+            top_k=top_k,
+            max_chunks_per_document=max_chunks_per_document,
+            document_id=lambda match: match.chunk.document_id,
+        )
 
     def _normalize(self, vector: Sequence[float]) -> tuple[float, ...]:
         if len(vector) != self.dimension:

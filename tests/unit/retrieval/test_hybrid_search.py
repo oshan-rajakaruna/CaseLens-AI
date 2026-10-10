@@ -176,6 +176,40 @@ def test_hybrid_top_k_and_ties_are_deterministic() -> None:
     assert results[0].rank == 1
 
 
+def test_hybrid_diversification_runs_after_scoring_and_preserves_scores() -> None:
+    first = _bm25_result("dominant", 10.0)
+    second = _bm25_result("dominant", 9.0).model_copy(
+        update={"chunk_id": "dominant-chunk-0002"}
+    )
+    third = _bm25_result("dominant", 8.0).model_copy(
+        update={"chunk_id": "dominant-chunk-0003"}
+    )
+    lower = _bm25_result("other", 7.0)
+    service, _, _ = _hybrid([first, second, third, lower], [])
+
+    uncapped = service.search("legal query", top_k=3)
+    capped = service.search(
+        "legal query",
+        top_k=3,
+        max_chunks_per_document=2,
+    )
+
+    assert [result.chunk_id for result in uncapped] == [
+        "dominant-chunk-0001",
+        "dominant-chunk-0002",
+        "dominant-chunk-0003",
+    ]
+    assert [result.chunk_id for result in capped] == [
+        "dominant-chunk-0001",
+        "dominant-chunk-0002",
+        "other-chunk-0001",
+    ]
+    assert [result.hybrid_score for result in capped[:2]] == [
+        result.hybrid_score for result in uncapped[:2]
+    ]
+    assert [result.rank for result in capped] == [1, 2, 3]
+
+
 def test_metadata_filters_support_exact_fields_and_year() -> None:
     employment = _metadata("employment", court="Appeal Court", date="2024-03-15")
     property_metadata = _metadata(

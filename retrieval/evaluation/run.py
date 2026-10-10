@@ -13,6 +13,7 @@ import re
 from typing import Any
 
 from agents.retrieval import RetrievalAgent
+from retrieval.config import load_retrieval_environment
 from retrieval.evaluation.evaluator import RetrievalEvaluator
 from retrieval.evaluation.models import EvaluationComparison, EvaluationDataset
 from retrieval.evaluation.weights import (
@@ -165,6 +166,7 @@ def _text_output(
 def main(argv: list[str] | None = None) -> int:
     """Run the command-line evaluator and print text or JSON output."""
 
+    load_retrieval_environment()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--dataset",

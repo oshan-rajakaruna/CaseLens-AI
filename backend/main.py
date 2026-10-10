@@ -3,7 +3,10 @@
 from fastapi import FastAPI
 
 from backend.api.router import api_router
+from backend.config import get_settings
 from backend.schemas import HealthResponse, RootResponse
+
+get_settings()
 
 app = FastAPI(
     title="CaseLens Legal Case Analysis API",

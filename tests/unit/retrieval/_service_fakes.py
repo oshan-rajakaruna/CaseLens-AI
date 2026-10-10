@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from retrieval.hybrid import DEFAULT_BM25_WEIGHT, DEFAULT_SEMANTIC_WEIGHT
 from retrieval.preprocessing.metadata import (
     BM25SearchResult,
     HybridSearchResult,
@@ -43,8 +44,18 @@ class FakeRetrievalAgent:
         query: str,
         top_k: int = 5,
         filters: dict[str, Any] | None = None,
+        *,
+        diversify: bool = True,
+        max_chunks_per_document: int | None = None,
     ) -> list[BM25SearchResult]:
-        self._record("bm25", query, top_k, filters)
+        self._record(
+            "bm25",
+            query,
+            top_k,
+            filters,
+            diversify=diversify,
+            max_chunks_per_document=max_chunks_per_document,
+        )
         if self.empty:
             return []
         metadata = _metadata()
@@ -71,8 +82,18 @@ class FakeRetrievalAgent:
         query: str,
         top_k: int = 5,
         filters: dict[str, Any] | None = None,
+        *,
+        diversify: bool = True,
+        max_chunks_per_document: int | None = None,
     ) -> list[SemanticSearchResult]:
-        self._record("semantic", query, top_k, filters)
+        self._record(
+            "semantic",
+            query,
+            top_k,
+            filters,
+            diversify=diversify,
+            max_chunks_per_document=max_chunks_per_document,
+        )
         if self.empty:
             return []
         metadata = _metadata()
@@ -100,9 +121,11 @@ class FakeRetrievalAgent:
         top_k: int = 5,
         filters: dict[str, Any] | None = None,
         *,
-        bm25_weight: float = 0.5,
-        semantic_weight: float = 0.5,
+        bm25_weight: float = DEFAULT_BM25_WEIGHT,
+        semantic_weight: float = DEFAULT_SEMANTIC_WEIGHT,
         candidate_multiplier: int | None = None,
+        diversify: bool = True,
+        max_chunks_per_document: int | None = None,
     ) -> list[HybridSearchResult]:
         self._record(
             "hybrid",
@@ -111,6 +134,8 @@ class FakeRetrievalAgent:
             filters,
             bm25_weight=bm25_weight,
             semantic_weight=semantic_weight,
+            diversify=diversify,
+            max_chunks_per_document=max_chunks_per_document,
         )
         if self.empty:
             return []

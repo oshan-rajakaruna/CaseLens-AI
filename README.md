@@ -55,6 +55,10 @@ Implemented:
   selection.
 - Optional manual relevance labels kept separate from binary metric ground
   truth.
+- Human-reviewed real-corpus evaluation covering 38 query-document judgments
+  across seven queries and 36 international-law documents.
+- Environment-configurable default hybrid fusion using the best observed
+  real-corpus compromise of BM25 `0.8` and semantic `0.2`.
 - Manifest-driven curated legal dataset validation and ingestion.
 - Reusable BM25 index construction with explicit, optional semantic indexing.
 - Structured strict/non-strict ingestion reports and a no-API dry-run mode.
@@ -63,9 +67,7 @@ Implemented:
 
 Not implemented yet:
 
-- Final fusion-weight tuning with retrieval evaluation data.
-- Final real-world evaluation using a curated legal dataset and reviewed
-  relevance judgements.
+- Larger-scale retrieval evaluation with a held-out validation query set.
 - Full Coordinator integration.
 - Persistent production index initialization and lifecycle management.
 - Production vector database persistence.
@@ -93,12 +95,28 @@ GEMINI_EMBEDDING_DIMENSION=768
 
 Never place a real provider key in source control or frontend configuration.
 
-Hybrid retrieval defaults to equal BM25 and semantic weights (`0.5` / `0.5`)
-and retrieves twice the requested result count from each mode before fusion.
-Both settings are configurable. The default weights are an initial academic
-prototype choice, not an empirically proven optimum. The evaluation framework
-can compare weights using Precision@K, Recall@K, and MRR, but final tuning must
-wait for a curated legal dataset.
+Hybrid retrieval defaults to BM25 `0.8` and semantic `0.2`, configured with
+`HYBRID_BM25_WEIGHT` and `HYBRID_SEMANTIC_WEIGHT`. The configured defaults must
+be finite, nonnegative, and sum to `1.0`; individual callers may still supply
+explicit weights, which are normalized by the existing fusion layer. Hybrid
+retrieval takes twice the requested result count from each mode before fusion.
+
+Production retrieval also applies document-level diversification after final
+score ordering. `RETRIEVAL_MAX_CHUNKS_PER_DOCUMENT=2` limits the number of
+returned chunks sharing the same metadata `document_id`; scores and their
+ordering are not recalculated. API and Retrieval Agent callers can override
+the cap with `max_chunks_per_document`, or intentionally disable it with
+`diversify=false`. The configured value must be an integer of at least `1`;
+invalid values fail clearly instead of silently selecting another cap. This is
+a redundancy control for downstream RAG context, not an accuracy claim.
+
+The default was selected as the best observed hybrid compromise in the current
+human-reviewed real-corpus evaluation. It is not a universally optimal weight:
+the evaluation contains only 36 documents, seven queries, and 38 reviewed
+query-document judgments, with no held-out validation set. Pure BM25 tied or
+exceeded hybrid on some metrics. For this evaluation only,
+`partially_relevant` judgments were mapped to binary relevant alongside
+`relevant` judgments.
 
 ### Retrieval API
 
@@ -111,6 +129,8 @@ application. Example request:
   "query": "unlawful termination",
   "mode": "hybrid",
   "top_k": 5,
+  "diversify": true,
+  "max_chunks_per_document": 2,
   "filters": {
     "legal_category": "employment"
   }
@@ -131,12 +151,41 @@ python -m retrieval.evaluation.run --weights --json
 ```
 
 The bundled dataset is explicitly synthetic and the offline embedding service
-exists only to make framework execution reproducible without Gemini, internet,
-or an API key. Its output is not a claim about production accuracy or legal
-retrieval quality. Final evaluation results remain pending a curated legal
-dataset and reviewed relevance judgements. See
-[RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md) for the reporting
-template.
+exists only to make framework execution reproducible without an external
+provider, internet, or an API key. Its output is not a claim about production
+accuracy. A separate human-reviewed evaluation was completed on the curated
+36-document corpus; see
+[RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md) for its policy,
+decision, and limitations.
+
+The evaluation runner explicitly disables production diversification so its
+historical chunk rankings and weight comparison remain reproducible. Future
+evaluation of the cap should be reported as a separate experiment.
+
+### RAG context assembly
+
+`retrieval.rag.RAGContextAssembler` converts already-ranked retrieval results
+into citation-preserving passages for future Coordinator and Summarization
+work. Retrieval results are individual scored chunks; RAG context passages may
+conservatively merge adjacent chunks, remove document-scoped duplicate text,
+and truncate the final passage to remain within a prompt-context budget.
+
+Context assembly defaults to `RAG_MAX_CONTEXT_TOKENS=4000` and
+`RAG_MAX_CONTEXT_PASSAGES=8`. `RAG_MIN_RETRIEVAL_SCORE` is optional and has no
+numeric default: empty or unset keeps all retrieved results. Context IDs such
+as `CTX-001` are prompt-local references and supplement rather than replace
+document IDs, chunk IDs, page numbers, citations, sources, and retrieval
+scores. Token counts use a deterministic dependency-free estimate that counts
+Unicode words and punctuation as units, including formatted provenance
+headers. See [RAG_CONTEXT.md](docs/RAG_CONTEXT.md) for the complete contract and
+limitations.
+
+The Coordinator-side `LegalRetrievalContextService` now composes the existing
+Retrieval Agent with this assembler and returns a network-free,
+summarization-ready payload. It includes formatted context, structured
+passages, a `CTX` citation map, retrieval configuration, and diagnostics. No
+Summarization or Verification Agent is invoked in this phase. See
+[COORDINATOR_RAG_FLOW.md](docs/COORDINATOR_RAG_FLOW.md).
 
 ### Legal Dataset Ingestion
 
@@ -293,6 +342,21 @@ structured JSON. The backend will validate shared API contracts and, in later
 phases, delegate work through a coordinator to specialized agents. Retrieval,
 NLP, persistence, storage, and security remain separate modules so team members
 can develop them in parallel.
+
+## Grounded summarization contract
+
+The Coordinator can now pass assembled RAG evidence to a provider-neutral
+`SummarizationAgent`. Its deterministic prompt permits only supplied context,
+requires inline `[CTX-nnn]` references, and prohibits invented authorities,
+cases, pages, or citations. Both inline and declared citations are checked
+against the Coordinator citation map without silently repairing failures.
+
+Empty context bypasses generation and returns a controlled insufficient-context
+answer. Weak-retrieval warnings are propagated into the prompt and must be
+acknowledged in output limitations. No external summarization provider is
+enabled; automated tests use network-free fakes. See
+[SUMMARIZATION_AGENT.md](docs/SUMMARIZATION_AGENT.md) for the complete contract
+and future Verification Agent handoff.
 
 ## Five-agent overview
 

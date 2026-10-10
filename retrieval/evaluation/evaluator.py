@@ -20,23 +20,28 @@ from retrieval.evaluation.models import (
     PerQueryEvaluationResult,
     QueryMetricsAtK,
 )
-from retrieval.hybrid import DEFAULT_BM25_WEIGHT, DEFAULT_SEMANTIC_WEIGHT
+from retrieval.hybrid import resolve_hybrid_weights
 
 
 class EvaluatedRetrievalAgent(Protocol):
     """Retrieval Agent surface needed by the evaluator."""
 
-    def search_bm25(self, query: str, top_k: int = 5) -> Sequence[Any]: ...
+    def search_bm25(
+        self, query: str, top_k: int = 5, *, diversify: bool = True
+    ) -> Sequence[Any]: ...
 
-    def search_semantic(self, query: str, top_k: int = 5) -> Sequence[Any]: ...
+    def search_semantic(
+        self, query: str, top_k: int = 5, *, diversify: bool = True
+    ) -> Sequence[Any]: ...
 
     def search_hybrid(
         self,
         query: str,
         top_k: int = 5,
         *,
-        bm25_weight: float = DEFAULT_BM25_WEIGHT,
-        semantic_weight: float = DEFAULT_SEMANTIC_WEIGHT,
+        bm25_weight: float | None = None,
+        semantic_weight: float | None = None,
+        diversify: bool = True,
     ) -> Sequence[Any]: ...
 
 
@@ -68,8 +73,8 @@ class RetrievalEvaluator:
         *,
         k_values: Sequence[int] = (1, 3, 5),
         retrieval_depth: int | None = None,
-        bm25_weight: float = DEFAULT_BM25_WEIGHT,
-        semantic_weight: float = DEFAULT_SEMANTIC_WEIGHT,
+        bm25_weight: float | None = None,
+        semantic_weight: float | None = None,
     ) -> ModeEvaluationResult:
         """Evaluate one mode and retain per-query rankings and metrics."""
 
@@ -82,6 +87,12 @@ class RetrievalEvaluator:
             if retrieval_depth <= 0:
                 raise ValueError("retrieval_depth must be greater than zero")
         effective_depth = max(max(cutoffs), retrieval_depth or 0)
+        normalized_bm25_weight = 0.0
+        normalized_semantic_weight = 0.0
+        if mode == "hybrid":
+            normalized_bm25_weight, normalized_semantic_weight = (
+                resolve_hybrid_weights(bm25_weight, semantic_weight)
+            )
         per_query: list[PerQueryEvaluationResult] = []
 
         for evaluation_query in queries:
@@ -89,8 +100,8 @@ class RetrievalEvaluator:
                 evaluation_query.query,
                 mode,
                 top_k=effective_depth,
-                bm25_weight=bm25_weight,
-                semantic_weight=semantic_weight,
+                bm25_weight=normalized_bm25_weight,
+                semantic_weight=normalized_semantic_weight,
             )
             id_field = (
                 "document_id"
@@ -175,8 +186,8 @@ class RetrievalEvaluator:
         *,
         modes: Sequence[EvaluationMode] = ("bm25", "semantic", "hybrid"),
         k_values: Sequence[int] = (1, 3, 5),
-        bm25_weight: float = DEFAULT_BM25_WEIGHT,
-        semantic_weight: float = DEFAULT_SEMANTIC_WEIGHT,
+        bm25_weight: float | None = None,
+        semantic_weight: float | None = None,
     ) -> EvaluationComparison:
         """Evaluate requested modes without choosing or labelling a winner."""
 
@@ -210,14 +221,23 @@ class RetrievalEvaluator:
         semantic_weight: float,
     ) -> Sequence[Any]:
         if mode == "bm25":
-            return self.agent.search_bm25(query, top_k=top_k)
+            return self.agent.search_bm25(
+                query,
+                top_k=top_k,
+                diversify=False,
+            )
         if mode == "semantic":
-            return self.agent.search_semantic(query, top_k=top_k)
+            return self.agent.search_semantic(
+                query,
+                top_k=top_k,
+                diversify=False,
+            )
         if mode == "hybrid":
             return self.agent.search_hybrid(
                 query,
                 top_k=top_k,
                 bm25_weight=bm25_weight,
                 semantic_weight=semantic_weight,
+                diversify=False,
             )
         raise ValueError(f"Unsupported evaluation mode: {mode}")

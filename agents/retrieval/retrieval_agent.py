@@ -8,11 +8,10 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from retrieval.bm25 import BM25Index, BM25Searcher
+from retrieval.diversification import resolve_max_chunks_per_document
 from retrieval.embeddings import EmbeddingService, create_embedding_service
 from retrieval.hybrid import (
-    DEFAULT_BM25_WEIGHT,
     DEFAULT_CANDIDATE_MULTIPLIER,
-    DEFAULT_SEMANTIC_WEIGHT,
     HybridSearchService,
 )
 from retrieval.preprocessing.metadata import (
@@ -72,16 +71,28 @@ class RetrievalAgent:
         query: str,
         top_k: int = 5,
         filters: Mapping[str, Any] | None = None,
+        *,
+        diversify: bool = True,
+        max_chunks_per_document: int | None = None,
     ) -> list[BM25SearchResult]:
         """Backward-compatible alias for :meth:`search_bm25`."""
 
-        return self.search_bm25(query, top_k=top_k, filters=filters)
+        return self.search_bm25(
+            query,
+            top_k=top_k,
+            filters=filters,
+            diversify=diversify,
+            max_chunks_per_document=max_chunks_per_document,
+        )
 
     def search_bm25(
         self,
         query: str,
         top_k: int = 5,
         filters: Mapping[str, Any] | None = None,
+        *,
+        diversify: bool = True,
+        max_chunks_per_document: int | None = None,
     ) -> list[BM25SearchResult]:
         """Search only the BM25 index; metadata filters are reserved."""
 
@@ -89,21 +100,40 @@ class RetrievalAgent:
             raise NotImplementedError(
                 "Metadata filtering is currently supported only by hybrid search"
             )
-        return self._searcher.search(query, top_k=top_k)
+        cap = resolve_max_chunks_per_document(
+            diversify=diversify,
+            max_chunks_per_document=max_chunks_per_document,
+        )
+        return self._searcher.search(
+            query,
+            top_k=top_k,
+            max_chunks_per_document=cap,
+        )
 
     def search_semantic(
         self,
         query: str,
         top_k: int = 5,
         filters: Mapping[str, Any] | None = None,
+        *,
+        diversify: bool = True,
+        max_chunks_per_document: int | None = None,
     ) -> list[SemanticSearchResult]:
-        """Search only the Gemini-backed semantic vector index."""
+        """Search only the configured-provider semantic vector index."""
 
         if filters:
             raise NotImplementedError(
                 "Metadata filtering is currently supported only by hybrid search"
             )
-        return self._semantic.search(query, top_k=top_k)
+        cap = resolve_max_chunks_per_document(
+            diversify=diversify,
+            max_chunks_per_document=max_chunks_per_document,
+        )
+        return self._semantic.search(
+            query,
+            top_k=top_k,
+            max_chunks_per_document=cap,
+        )
 
     def search_hybrid(
         self,
@@ -111,12 +141,18 @@ class RetrievalAgent:
         top_k: int = 5,
         filters: Mapping[str, Any] | None = None,
         *,
-        bm25_weight: float = DEFAULT_BM25_WEIGHT,
-        semantic_weight: float = DEFAULT_SEMANTIC_WEIGHT,
+        bm25_weight: float | None = None,
+        semantic_weight: float | None = None,
         candidate_multiplier: int | None = None,
+        diversify: bool = True,
+        max_chunks_per_document: int | None = None,
     ) -> list[HybridSearchResult]:
         """Search BM25 and semantic candidates, then return a fused ranking."""
 
+        cap = resolve_max_chunks_per_document(
+            diversify=diversify,
+            max_chunks_per_document=max_chunks_per_document,
+        )
         return self._hybrid.search(
             query,
             top_k=top_k,
@@ -124,4 +160,5 @@ class RetrievalAgent:
             bm25_weight=bm25_weight,
             semantic_weight=semantic_weight,
             candidate_multiplier=candidate_multiplier,
+            max_chunks_per_document=cap,
         )

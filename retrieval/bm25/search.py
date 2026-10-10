@@ -1,6 +1,7 @@
 """Ranked search over a :class:`BM25Index`."""
 
 from retrieval.bm25.index import BM25Index
+from retrieval.diversification import diversify_ranked_results
 from retrieval.preprocessing.metadata import BM25SearchResult
 
 
@@ -10,7 +11,13 @@ class BM25Searcher:
     def __init__(self, index: BM25Index) -> None:
         self.index = index
 
-    def search(self, query: str, top_k: int = 5) -> list[BM25SearchResult]:
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        *,
+        max_chunks_per_document: int | None = None,
+    ) -> list[BM25SearchResult]:
         """Return up to ``top_k`` positive-scoring results."""
 
         if not isinstance(query, str):
@@ -31,8 +38,14 @@ class BM25Searcher:
             key=lambda item: (-item[0], item[1].document_id, item[1].chunk_id)
         )
 
+        selected = diversify_ranked_results(
+            candidates,
+            top_k=top_k,
+            max_chunks_per_document=max_chunks_per_document,
+            document_id=lambda item: item[1].document_id,
+        )
         results: list[BM25SearchResult] = []
-        for rank, (score, chunk) in enumerate(candidates[:top_k], start=1):
+        for rank, (score, chunk) in enumerate(selected, start=1):
             metadata = chunk.metadata
             results.append(
                 BM25SearchResult(

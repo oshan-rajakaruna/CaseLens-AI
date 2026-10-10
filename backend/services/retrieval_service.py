@@ -10,7 +10,7 @@ from backend.schemas.retrieval import (
     metadata_to_public,
 )
 from retrieval.embeddings import GeminiEmbeddingError, MissingGeminiAPIKeyError
-from retrieval.hybrid import DEFAULT_BM25_WEIGHT, DEFAULT_SEMANTIC_WEIGHT
+from retrieval.hybrid import resolve_hybrid_weights
 from retrieval.preprocessing.metadata import (
     BM25SearchResult,
     HybridSearchResult,
@@ -62,6 +62,8 @@ class RetrievalService:
                 internal_results = self.agent.search_bm25(
                     request.query,
                     top_k=request.top_k,
+                    diversify=request.diversify,
+                    max_chunks_per_document=request.max_chunks_per_document,
                 )
             elif request.mode == "semantic":
                 if getattr(self.agent, "semantic_index_size", None) == 0:
@@ -71,22 +73,22 @@ class RetrievalService:
                 internal_results = self.agent.search_semantic(
                     request.query,
                     top_k=request.top_k,
+                    diversify=request.diversify,
+                    max_chunks_per_document=request.max_chunks_per_document,
                 )
             else:
+                bm25_weight, semantic_weight = resolve_hybrid_weights(
+                    request.bm25_weight,
+                    request.semantic_weight,
+                )
                 internal_results = self.agent.search_hybrid(
                     request.query,
                     top_k=request.top_k,
                     filters=filters,
-                    bm25_weight=(
-                        request.bm25_weight
-                        if request.bm25_weight is not None
-                        else DEFAULT_BM25_WEIGHT
-                    ),
-                    semantic_weight=(
-                        request.semantic_weight
-                        if request.semantic_weight is not None
-                        else DEFAULT_SEMANTIC_WEIGHT
-                    ),
+                    bm25_weight=bm25_weight,
+                    semantic_weight=semantic_weight,
+                    diversify=request.diversify,
+                    max_chunks_per_document=request.max_chunks_per_document,
                 )
         except RetrievalServiceError:
             raise

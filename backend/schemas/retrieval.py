@@ -30,6 +30,8 @@ class RetrievalSearchRequest(BaseModel):
     filters: RetrievalFilters | None = None
     bm25_weight: float | None = Field(default=None, ge=0)
     semantic_weight: float | None = Field(default=None, ge=0)
+    diversify: bool = True
+    max_chunks_per_document: int | None = Field(default=None, ge=1, strict=True)
 
     @field_validator("query")
     @classmethod
@@ -51,15 +53,15 @@ class RetrievalSearchRequest(BaseModel):
     def hybrid_weights_must_have_positive_total(self) -> "RetrievalSearchRequest":
         """Reject a hybrid request that disables both retrieval channels."""
 
-        if self.mode == "hybrid":
-            bm25_weight = 0.5 if self.bm25_weight is None else self.bm25_weight
-            semantic_weight = (
-                0.5 if self.semantic_weight is None else self.semantic_weight
+        if (
+            self.mode == "hybrid"
+            and self.bm25_weight is not None
+            and self.semantic_weight is not None
+            and self.bm25_weight + self.semantic_weight <= 0
+        ):
+            raise ValueError(
+                "at least one hybrid retrieval weight must be greater than zero"
             )
-            if bm25_weight + semantic_weight <= 0:
-                raise ValueError(
-                    "at least one hybrid retrieval weight must be greater than zero"
-                )
         return self
 
 

@@ -13,9 +13,9 @@ from retrieval.vector_store.index import (
 )
 
 
-def _chunk(document_id: str) -> LegalTextChunk:
+def _chunk(document_id: str, chunk_number: int = 1) -> LegalTextChunk:
     return LegalTextChunk(
-        chunk_id=f"{document_id}-chunk-0001",
+        chunk_id=f"{document_id}-chunk-{chunk_number:04d}",
         document_id=document_id,
         chunk_text=f"Synthetic {document_id} text",
         metadata=LegalDocumentMetadata(document_id=document_id),
@@ -48,6 +48,26 @@ def test_vector_index_has_deterministic_tie_ordering() -> None:
     assert [match.chunk.document_id for match in matches] == [
         "employment",
         "property",
+    ]
+
+
+def test_vector_index_caps_ranked_chunks_by_metadata_document_id() -> None:
+    index = InMemoryVectorIndex(dimension=2)
+    index.add([1.0, 0.0], _chunk("dominant", 1))
+    index.add([0.99, 0.01], _chunk("dominant", 2))
+    index.add([0.98, 0.02], _chunk("dominant", 3))
+    index.add([0.9, 0.1], _chunk("other", 1))
+
+    matches = index.search(
+        [1.0, 0.0],
+        top_k=3,
+        max_chunks_per_document=2,
+    )
+
+    assert [match.chunk.chunk_id for match in matches] == [
+        "dominant-chunk-0001",
+        "dominant-chunk-0002",
+        "other-chunk-0001",
     ]
 
 

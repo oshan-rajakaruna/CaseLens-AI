@@ -37,10 +37,16 @@ class _ControlledAgent:
         }
         self.hybrid_weights: list[tuple[float, float]] = []
 
-    def search_bm25(self, query: str, top_k: int = 5) -> list[_Result]:
+    def search_bm25(
+        self, query: str, top_k: int = 5, *, diversify: bool = True
+    ) -> list[_Result]:
+        assert diversify is False
         return self._results("bm25", query, top_k)
 
-    def search_semantic(self, query: str, top_k: int = 5) -> list[_Result]:
+    def search_semantic(
+        self, query: str, top_k: int = 5, *, diversify: bool = True
+    ) -> list[_Result]:
+        assert diversify is False
         return self._results("semantic", query, top_k)
 
     def search_hybrid(
@@ -50,7 +56,9 @@ class _ControlledAgent:
         *,
         bm25_weight: float = 0.5,
         semantic_weight: float = 0.5,
+        diversify: bool = True,
     ) -> list[_Result]:
+        assert diversify is False
         self.hybrid_weights.append((bm25_weight, semantic_weight))
         return self._results("hybrid", query, top_k)
 
