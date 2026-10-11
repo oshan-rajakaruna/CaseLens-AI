@@ -41,9 +41,16 @@ class FakeClient:
 
 
 class FakeAPIError(RuntimeError):
-    def __init__(self, message: str, status_code: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        status_code: int | None = None,
+        *,
+        code: int | None = None,
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
+        self.code = code
 
 
 def _provider(response: Any = None, error: Exception | None = None):
@@ -147,6 +154,10 @@ def test_missing_api_configuration_is_rejected(monkeypatch) -> None:
         (FakeAPIError("credential rejected", 401), GeminiSummarizationAuthenticationError),
         (FakeAPIError("requested model not found", 404), GeminiSummarizationModelError),
         (FakeAPIError("quota exhausted", 429), GeminiSummarizationRateLimitError),
+        (
+            FakeAPIError("upstream deadline", code=504),
+            GeminiSummarizationTimeoutError,
+        ),
         (TimeoutError("secret prompt timed out"), GeminiSummarizationTimeoutError),
     ],
 )
@@ -157,6 +168,45 @@ def test_provider_failures_are_classified_without_sensitive_payloads(error, expe
         provider.generate(build_summarization_provider_request(_payload()))
 
     assert "secret prompt" not in str(caught.value)
+
+
+def test_sdk_client_has_bounded_timeout_and_one_total_attempt(monkeypatch) -> None:
+    captured: dict[str, Any] = {}
+    client = FakeClient(_valid_response())
+
+    def fake_client(**kwargs: Any) -> FakeClient:
+        captured.update(kwargs)
+        return client
+
+    monkeypatch.setattr("agents.summarization.gemini.genai.Client", fake_client)
+    provider = GeminiSummarizationProvider(
+        GeminiSummarizationSettings(
+            api_key="offline-test-key",
+            request_timeout_ms=30_000,
+        )
+    )
+
+    provider.generate(build_summarization_provider_request(_payload()))
+
+    http_options = captured["http_options"]
+    assert http_options.timeout == 30_000
+    assert http_options.retry_options.attempts == 1
+    assert len(client.models.calls) == 1
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "not-an-integer"])
+def test_invalid_request_timeout_configuration_is_rejected(
+    monkeypatch,
+    value: str,
+) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "offline-test-key")
+    monkeypatch.setenv("GEMINI_REQUEST_TIMEOUT_MS", value)
+
+    with pytest.raises(
+        GeminiSummarizationConfigurationError,
+        match="GEMINI_REQUEST_TIMEOUT_MS",
+    ):
+        GeminiSummarizationProvider()
 
 
 def test_insufficient_context_does_not_call_gemini() -> None:

@@ -14,6 +14,7 @@ from agents.summarization.citations import (
 from agents.summarization.gemini import (
     DEFAULT_GEMINI_MAX_OUTPUT_TOKENS,
     DEFAULT_GEMINI_MODEL,
+    DEFAULT_GEMINI_REQUEST_TIMEOUT_MS,
     GeminiSummarizationAuthenticationError,
     GeminiSummarizationConfigurationError,
     GeminiSummarizationError,
@@ -52,6 +53,7 @@ __all__ = [
     "CitationValidationResult",
     "DEFAULT_GEMINI_MAX_OUTPUT_TOKENS",
     "DEFAULT_GEMINI_MODEL",
+    "DEFAULT_GEMINI_REQUEST_TIMEOUT_MS",
     "GeminiSummarizationAuthenticationError",
     "GeminiSummarizationConfigurationError",
     "GeminiSummarizationError",

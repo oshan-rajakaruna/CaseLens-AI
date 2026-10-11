@@ -19,6 +19,8 @@ class Settings:
     database_url: str
     llm_api_key: str
     secret_key: str
+    enable_dev_summarization_api: bool
+    dev_summarization_api_token: str
 
 
 @lru_cache
@@ -32,4 +34,8 @@ def get_settings() -> Settings:
         database_url=getenv("DATABASE_URL", ""),
         llm_api_key=getenv("LLM_API_KEY", ""),
         secret_key=getenv("SECRET_KEY", ""),
+        enable_dev_summarization_api=(
+            getenv("ENABLE_DEV_SUMMARIZATION_API", "false") == "true"
+        ),
+        dev_summarization_api_token=getenv("DEV_SUMMARIZATION_API_TOKEN", ""),
     )

@@ -2,7 +2,9 @@
 
 from dataclasses import dataclass
 import json
+import logging
 from os import getenv
+from time import monotonic
 from typing import Any
 
 from google import genai
@@ -16,6 +18,9 @@ from agents.summarization.schemas import (
 
 DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 DEFAULT_GEMINI_MAX_OUTPUT_TOKENS = 2048
+DEFAULT_GEMINI_REQUEST_TIMEOUT_MS = 30_000
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiSummarizationError(RuntimeError):
@@ -53,6 +58,7 @@ class GeminiSummarizationSettings:
     api_key: str
     model: str = DEFAULT_GEMINI_MODEL
     max_output_tokens: int = DEFAULT_GEMINI_MAX_OUTPUT_TOKENS
+    request_timeout_ms: int = DEFAULT_GEMINI_REQUEST_TIMEOUT_MS
 
     def __post_init__(self) -> None:
         if not isinstance(self.api_key, str) or not self.api_key.strip():
@@ -71,6 +77,14 @@ class GeminiSummarizationSettings:
             raise GeminiSummarizationConfigurationError(
                 "GEMINI_MAX_OUTPUT_TOKENS must be a positive integer"
             )
+        if (
+            isinstance(self.request_timeout_ms, bool)
+            or not isinstance(self.request_timeout_ms, int)
+            or self.request_timeout_ms <= 0
+        ):
+            raise GeminiSummarizationConfigurationError(
+                "GEMINI_REQUEST_TIMEOUT_MS must be a positive integer"
+            )
 
     @classmethod
     def from_environment(cls) -> "GeminiSummarizationSettings":
@@ -84,10 +98,15 @@ class GeminiSummarizationSettings:
             raise GeminiSummarizationConfigurationError(
                 "GEMINI_MAX_OUTPUT_TOKENS must be a positive integer"
             ) from exc
+        request_timeout_ms = _positive_integer_from_environment(
+            "GEMINI_REQUEST_TIMEOUT_MS",
+            DEFAULT_GEMINI_REQUEST_TIMEOUT_MS,
+        )
         return cls(
             api_key=getenv("GEMINI_API_KEY", ""),
             model=getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
             max_output_tokens=max_output_tokens,
+            request_timeout_ms=request_timeout_ms,
         )
 
 
@@ -119,6 +138,8 @@ class GeminiSummarizationProvider:
     def generate(self, request: SummarizationProviderRequest) -> SummarizationOutput:
         """Return validated structured output without changing agent contracts."""
 
+        started_at = monotonic()
+        _log_timing("gemini_generate_content", started_at, "started")
         try:
             response = self._get_client().models.generate_content(
                 model=self.model_name,
@@ -130,19 +151,41 @@ class GeminiSummarizationProvider:
                 ),
             )
         except GeminiSummarizationError:
+            _log_timing("gemini_generate_content", started_at, "error")
             raise
         except Exception as exc:
+            _log_timing(
+                "gemini_generate_content",
+                started_at,
+                "error",
+                type(exc).__name__,
+            )
             raise _classified_provider_error(exc) from exc
+        _log_timing("gemini_generate_content", started_at, "completed")
         return _parse_response(response)
 
     def _get_client(self) -> Any:
         if self._client is None:
+            started_at = monotonic()
             try:
-                self._client = genai.Client(api_key=self.settings.api_key)
+                self._client = genai.Client(
+                    api_key=self.settings.api_key,
+                    http_options=types.HttpOptions(
+                        timeout=self.settings.request_timeout_ms,
+                        retry_options=types.HttpRetryOptions(attempts=1),
+                    ),
+                )
             except Exception as exc:
+                _log_timing(
+                    "gemini_client_initialization",
+                    started_at,
+                    "error",
+                    type(exc).__name__,
+                )
                 raise GeminiSummarizationConfigurationError(
                     "Gemini client could not be configured; check GEMINI_API_KEY"
                 ) from exc
+            _log_timing("gemini_client_initialization", started_at, "completed")
         return self._client
 
 
@@ -162,6 +205,38 @@ def _max_output_tokens_from_environment() -> int:
             "GEMINI_MAX_OUTPUT_TOKENS must be a positive integer"
         )
     return value
+
+
+def _positive_integer_from_environment(name: str, default: int) -> int:
+    raw_value = getenv(name, str(default))
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise GeminiSummarizationConfigurationError(
+            f"{name} must be a positive integer"
+        ) from exc
+    if value <= 0:
+        raise GeminiSummarizationConfigurationError(
+            f"{name} must be a positive integer"
+        )
+    return value
+
+
+def _log_timing(
+    stage: str,
+    started_at: float,
+    outcome: str,
+    exception_type: str | None = None,
+) -> None:
+    if getenv("SUMMARIZATION_TIMING_DIAGNOSTICS", "false").casefold() != "true":
+        return
+    logger.info(
+        "summarization_stage stage=%s duration_seconds=%.3f outcome=%s exception_type=%s",
+        stage,
+        monotonic() - started_at,
+        outcome,
+        exception_type or "none",
+    )
 
 
 def _parse_response(response: Any) -> SummarizationOutput:
@@ -186,7 +261,9 @@ def _parse_response(response: Any) -> SummarizationOutput:
 def _classified_provider_error(error: Exception) -> GeminiSummarizationError:
     """Map provider failures to safe messages without echoing request data."""
 
-    status = getattr(error, "status_code", None)
+    status = getattr(error, "code", None)
+    if not isinstance(status, int):
+        status = getattr(error, "status_code", None)
     name = type(error).__name__.casefold()
     message = str(error).casefold()
     if status in {401, 403} or "authentication" in name or "unauthorized" in message:
