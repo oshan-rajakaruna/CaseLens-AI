@@ -65,8 +65,59 @@ It stores no full authority passage text in the comparison record.
 `links_prepared_for_review` means only that explicit source links were resolved
 successfully. It does not mean the authority applies, the fact is true, or the
 comparison was substantively verified. Every link uses fixed neutral wording
-and `requires_human_review`. Gemini-generated comparative explanations remain
-postponed until their generation and verification contracts are agreed.
+and `requires_human_review`.
+
+## Optional AI comparative explanations
+
+`LegalComparisonDraftService` is a separate, explicitly invoked workflow. It
+accepts existing `LegalComparisonRecord` objects together with the exact
+originating Analysis responses and `SummarizationReadyPayload`; it never chooses
+fact-authority pairs and is not called by report assembly:
+
+```python
+from backend.services.gemini_legal_comparison import (
+    GeminiLegalComparisonProvider,
+)
+from backend.services.legal_comparison_generation import (
+    LegalComparisonDraftService,
+)
+
+records_with_drafts = LegalComparisonDraftService(
+    GeminiLegalComparisonProvider()
+).generate(report.comparisons, analysis_responses, summarization_ready_payload)
+report_with_drafts = report.model_copy(
+    deep=True,
+    update={"comparisons": records_with_drafts},
+)
+```
+
+For each selected link, the service revalidates the fact statement, epistemic
+and verification metadata, private evidence identity, CTX mapping, legal
+document identity, chunks, pages, URL, citation, and provenance. Only that fact
+and the exact selected legal passage are sent to the provider. Private evidence
+excerpts are omitted. The legal passage is used transiently and is not added to
+the stored record.
+
+The provider-neutral `LegalComparisonGenerationRequest` contains the immutable
+comparison and CTX identifiers, fact metadata, excerpt-free evidence metadata,
+selected passage, authority provenance, and existing limitations.
+`LegalComparisonProviderOutput` must echo both identifiers and return an
+explanation, non-empty uncertainties, `ai_generated=true`, and
+`human_review_required=true`. Unexpected identifiers and additional CTX tokens
+are rejected.
+
+Successful generation attaches an optional `LegalComparisonDraft` to a deep
+copy of the original record. Every draft has
+`verification_status="not_verified"`; the deterministic link keeps
+`review_status="requires_human_review"`. These statuses are not changed by CTX
+identity validation, whole-summary verification, or Gemini output. Generation
+does not establish factual truth, legal applicability, a violation, a remedy,
+or report-wide verification. Human legal review remains required.
+
+Gemini requests occur only when application code explicitly creates a provider
+and calls the draft service with at least one comparison. Empty collections
+return without a provider call. The Gemini adapter uses structured JSON schema,
+the configured `GEMINI_MODEL`, a bounded request timeout, and one SDK attempt.
 
 ## Safe Markdown rendering
 
@@ -84,10 +135,12 @@ markdown = LegalResearchReportMarkdownRenderer().render(report)
 ```
 
 The output includes case information, Analysis availability and findings,
-summary-cited authorities, explicit comparison links, the original generated
-summary, exact Verification Agent statuses, report limitations, and the
-mandatory human-review disclaimer. Missing Analysis, empty findings, absent
-comparisons, and unavailable optional authority metadata are stated or omitted
+summary-cited authorities, explicit comparison links, optional generated
+comparison drafts, the original generated summary, exact Verification Agent
+statuses, report limitations, and the mandatory human-review disclaimer.
+Generated drafts are visibly labeled **Not independently verified — Human
+review required**. Missing Analysis, empty findings, absent comparisons, absent
+drafts, and unavailable optional authority metadata are stated or omitted
 without inventing replacement values.
 
 Report-derived text is treated as untrusted: Markdown control characters and

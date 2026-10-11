@@ -9,7 +9,10 @@ from agents.analysis.schemas import AnalysisWarning
 from agents.summarization import GeminiSummarizationProvider
 from agents.verification import VerificationAgent
 from backend.schemas import Case
-from backend.schemas.legal_comparison import FactAuthoritySelection
+from backend.schemas.legal_comparison import (
+    FactAuthoritySelection,
+    LegalComparisonDraft,
+)
 from backend.services.legal_report import LegalResearchReportAssembler
 from backend.services.legal_report_markdown import (
     LegalResearchReportMarkdownRenderer,
@@ -203,6 +206,48 @@ def test_explicit_link_is_human_review_only_and_comparison_ctx_stays_separate() 
     assert r"Used CTX citations:** CTX\-001" in markdown
     assert r"Used CTX citations:** CTX\-001, CTX\-002" not in markdown
     assert "verified comparison" not in markdown.casefold()
+
+
+def test_ai_comparison_draft_is_rendered_as_unverified_and_human_reviewed() -> None:
+    report = _complete_report(comparison=True)
+    report.comparisons[0].ai_draft = LegalComparisonDraft(
+        comparison_id="CMP-001",
+        context_id="CTX-002",
+        explanation="The statements may relate, but applicability is uncertain.",
+        uncertainties=["The allegation has not been independently verified."],
+        ai_generated=True,
+        human_review_required=True,
+        provider="fake",
+        model="offline-model",
+    )
+
+    markdown = LegalResearchReportMarkdownRenderer().render(report)
+
+    assert "AI-generated comparative explanation" in markdown
+    assert "Not independently verified — Human review required" in markdown
+    assert r"Verification status:** not\_verified" in markdown
+    assert "The statements may relate" in markdown
+    assert r"Selected authority CTX:** CTX\-002" in markdown
+
+
+def test_ai_comparison_draft_escapes_generated_markdown_and_html() -> None:
+    report = _complete_report(comparison=True)
+    report.comparisons[0].ai_draft = LegalComparisonDraft(
+        comparison_id="CMP-001",
+        context_id="CTX-002",
+        explanation="## Forged heading\n<script>alert(1)</script>",
+        uncertainties=["[unsafe](javascript:alert(1))"],
+        ai_generated=True,
+        human_review_required=True,
+        provider="fake",
+    )
+
+    markdown = LegalResearchReportMarkdownRenderer().render(report)
+
+    assert r"> \#\# Forged heading" in markdown
+    assert "<script>" not in markdown
+    assert r"&lt;script&gt;alert\(1\)&lt;/script&gt;" in markdown
+    assert r"\[unsafe\]\(javascript:alert\(1\)\)" in markdown
 
 
 def test_absent_comparisons_render_not_assessed() -> None:

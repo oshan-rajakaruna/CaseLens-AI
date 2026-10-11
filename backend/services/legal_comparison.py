@@ -83,7 +83,7 @@ class LegalComparisonAssembler:
                         analysis_document_id=analysis.document_id,
                         fact_index=selection.fact_index,
                         statement=fact.statement,
-                        source=fact.source,
+                        source=fact.source.model_copy(deep=True),
                         epistemic_status=fact.epistemic_status,
                         confidence=fact.confidence,
                         verification_status=fact.verification_status,

@@ -257,6 +257,29 @@ def _render_comparisons(lines: list[str], report: LegalResearchReport) -> None:
         lines.append("**Recorded relationship**")
         lines.extend(_blockquote(record.relationship))
         _render_string_list(lines, "Link limitations", record.limitations)
+        if record.ai_draft is not None:
+            draft = record.ai_draft
+            lines.extend(
+                [
+                    "",
+                    "**AI-generated comparative explanation**",
+                    "",
+                    "**Not independently verified — Human review required**",
+                    "",
+                    _bullet("Verification status", draft.verification_status),
+                    _bullet("Comparison ID", draft.comparison_id),
+                    _bullet("Selected authority CTX", draft.context_id),
+                    _bullet("Provider", draft.provider),
+                ]
+            )
+            _append_optional(lines, "Model", draft.model)
+            lines.extend(["", "**Draft explanation**"])
+            lines.extend(_blockquote(draft.explanation))
+            _render_string_list(
+                lines,
+                "Draft uncertainties and limitations",
+                draft.uncertainties,
+            )
         lines.append("")
 
 
