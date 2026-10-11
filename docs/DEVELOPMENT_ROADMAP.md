@@ -38,12 +38,16 @@ already exist.
 - Milestone 6C-3A: authenticated owner-scoped PDF/TXT evidence upload, private
   opaque-key local storage, safe metadata listing, and a trusted Analysis-input
   extraction boundary are implemented. Manual testing is pending.
+- Milestone 6C-3B: authenticated owner-scoped research initiation, bounded
+  development background execution, durable task status, idempotent submission,
+  trusted Coordinator result access, and atomic structured-report persistence are
+  implemented. Manual testing and live Gemini evaluation are pending.
 
 ## Still pending
 
 - 5C: secure frontend API integration.
-- Durable Coordinator persistence integration, cancellation, and restart recovery.
-- 6C-3B Coordinator research execution over authorized stored evidence.
+- Production task workers, cancellation, automatic restart recovery, and queue
+  observability.
 - Production authentication and authorization.
 - Production identity-provider-backed case and report APIs.
 - Frontend integration with authenticated production APIs.

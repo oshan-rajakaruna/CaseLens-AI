@@ -68,6 +68,37 @@ class PersistenceService:
     def find_report_by_task(self, principal: TrustedPrincipal, task_id: str):
         return self._read(lambda repo: repo.find_report_by_task(principal, task_id))
 
+    def find_task_by_fingerprint(
+        self,
+        principal: TrustedPrincipal,
+        case_id: str,
+        request_fingerprint: str,
+    ):
+        return self._read(
+            lambda repo: repo.find_task_by_fingerprint(
+                principal, case_id, request_fingerprint
+            )
+        )
+
+    def finalize_task_with_report(
+        self,
+        principal: TrustedPrincipal,
+        *,
+        report: LegalResearchReport,
+        state: ReportState,
+        task_status: TaskStatus,
+        **values: Any,
+    ):
+        return self._write(
+            lambda repo: repo.finalize_task_with_report(
+                principal,
+                report=report,
+                state=state,
+                task_status=task_status,
+                **values,
+            )
+        )
+
     def record_agent_event(self, principal: TrustedPrincipal, **values: Any):
         return self._write(lambda repo: repo.record_agent_event(principal, **values))
 

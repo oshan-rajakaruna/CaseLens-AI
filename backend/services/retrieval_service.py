@@ -172,7 +172,7 @@ def get_retrieval_service() -> RetrievalService:
 
     agent = RetrievalAgent()
     index_dir = Path(
-        getenv("RETRIEVAL_INDEX_DIR", "data/legal/indexes/current")
+        getenv("RETRIEVAL_INDEX_DIR", "data/legal/indexes/bm25")
     )
     try:
         loaded = RetrievalIndexStore(index_dir).load(agent.embedding_service)

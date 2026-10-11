@@ -21,7 +21,11 @@ from tests.unit.summarization.test_verification_bridge import _passage, _payload
 from tests.unit.test_legal_report import _analysis, _assemble, _response
 
 
-def _complete_report(*, comparison: bool = False):
+def _complete_report(
+    *,
+    comparison: bool = False,
+    verification_status: str = "supported",
+):
     payload = _payload(
         _passage("CTX-001", "DOC-A", page=3),
         _passage("CTX-002", "DOC-B", "Comparison-only authority.", page=4),
@@ -40,7 +44,7 @@ def _complete_report(*, comparison: bool = False):
     return LegalResearchReportAssembler().assemble(
         Case(id="case-1", title="Synthetic case", description="Research draft"),
         payload,
-        _response(payload),
+        _response(payload, status=verification_status),
         analyses=[_analysis()],
         selections=selections,
     )

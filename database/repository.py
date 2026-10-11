@@ -295,6 +295,56 @@ class CaseLensRepository:
         )
         return None if model is None else _report_record(model)
 
+    def find_task_by_fingerprint(
+        self,
+        principal: TrustedPrincipal,
+        case_id: str,
+        request_fingerprint: str,
+    ) -> ResearchTaskRecord | None:
+        self._owned_case(principal, case_id)
+        model = self._session.scalar(
+            select(ResearchTaskModel).where(
+                ResearchTaskModel.owner_subject == principal.subject,
+                ResearchTaskModel.case_id == case_id,
+                ResearchTaskModel.request_fingerprint == request_fingerprint,
+            )
+        )
+        return None if model is None else ResearchTaskRecord.model_validate(model)
+
+    def finalize_task_with_report(
+        self,
+        principal: TrustedPrincipal,
+        *,
+        report_id: str,
+        case_id: str,
+        task_id: str,
+        report: LegalResearchReport,
+        state: ReportState,
+        task_status: TaskStatus,
+        stages: dict[str, str],
+        error_category: str | None = None,
+    ) -> tuple[LegalReportRecord, ResearchTaskRecord]:
+        if task_status not in {"completed", "partial"}:
+            raise InvalidStateTransitionError(
+                "a persisted report requires a completed or partial task"
+            )
+        report_record = self.save_report(
+            principal,
+            report_id=report_id,
+            case_id=case_id,
+            task_id=task_id,
+            report=report,
+            state=state,
+        )
+        task_record = self.update_task(
+            principal,
+            task_id,
+            status=task_status,
+            stages=stages,
+            error_category=error_category,
+        )
+        return report_record, task_record
+
     def record_agent_event(
         self,
         principal: TrustedPrincipal,

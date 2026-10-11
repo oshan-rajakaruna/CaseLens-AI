@@ -1,8 +1,9 @@
-# Authenticated case, report, and private evidence API foundation
+# Authenticated case, evidence, research, and report API foundation
 
-Milestones 6C-2 and 6C-3A provide a localhost-only demonstration session,
-owner-scoped case/report reads, and private PDF/TXT evidence uploads. They do not
-provide production authentication, research execution, or frontend integration.
+Milestones 6C-2 through 6C-3B provide a localhost-only demonstration session,
+owner-scoped case/report reads, private PDF/TXT evidence uploads, and bounded
+development research execution. They do not provide production authentication,
+durable distributed workers, or frontend integration.
 
 ## Development authentication
 
@@ -40,6 +41,8 @@ or report requests.
 - `GET /api/reports/{report_id}`
 - `POST /api/cases/{case_id}/documents`
 - `GET /api/cases/{case_id}/documents`
+- `POST /api/cases/{case_id}/research`
+- `GET /api/research-tasks/{task_id}`
 
 Every case/report endpoint derives `TrustedPrincipal` from the signed session.
 Requests cannot submit an owner. Foreign and missing resources both return 404.
@@ -75,6 +78,65 @@ existing `EvidenceDocumentInput` with page/text locations. PDF extraction uses
 PyMuPDF and does not perform OCR. Valid scanned/image-only PDFs are labelled
 `no_text` and `ocr_required`; they are not promoted to Analysis input.
 
+## Authorized research execution
+
+Research initiation requires the authenticated case owner, exact configured
+`Origin`, and `X-CSRF-Token`. The JSON contract is:
+
+```json
+{
+  "query": "What authorities govern the notice requirement?",
+  "document_ids": ["document-..."],
+  "legal_issue": "Optional narrowed legal issue",
+  "top_k": 5
+}
+```
+
+At least one unique document ID is required. Raw evidence, owner IDs, filesystem
+paths, storage keys, retrieval mode, comparisons, and provider configuration are
+not accepted. The server reloads every selected document through
+`PrivateEvidenceService`, preserving document/page locations, then constructs the
+existing Coordinator `AgentTask`. Retrieval is fixed to BM25, optional comparison
+drafts are disabled, and the persisted index configured by `RETRIEVAL_INDEX_DIR`
+(default `data/legal/indexes/bm25`) is loaded once per process rather than rebuilt.
+
+The accepted response and `GET /api/research-tasks/{task_id}` use the same safe
+shape:
+
+```json
+{
+  "id": "task-...",
+  "case_id": "case-...",
+  "status": "queued",
+  "stages": {"analysis": "pending", "retrieval": "pending"},
+  "error_category": null,
+  "report_id": null,
+  "created_at": "2026-10-11T00:00:00Z",
+  "updated_at": "2026-10-11T00:00:00Z",
+  "completed_at": null
+}
+```
+
+Terminal states are `completed`, `partial`, and `failed`. Status responses never
+contain evidence text, prompts, summaries, excerpts, provider exceptions, or raw
+agent output. When `report_id` becomes available, the existing owner-scoped
+`GET /api/reports/{report_id}` returns the complete structured report.
+
+Execution uses one bounded in-process worker in one application process and is
+development-only. Task creation
+is committed before dispatch. A canonical request fingerprint makes identical
+owner requests idempotent and prevents concurrent duplicate execution. The trusted
+Coordinator adapter is invoked once; its retained private result supplies the
+complete `LegalResearchReport`. Report insertion and the final task transition are
+one transaction. Partial reports remain partial and retain all verification,
+provenance, limitations, and human-review labels.
+
+There is no implicit Gemini retry. The existing Summarization provider reads its
+normal `GEMINI_API_KEY` configuration. A process restart does not resume work: polling
+an orphaned `queued` or `running` task marks it `failed` with
+`restart_interrupted`. A durable external worker and automatic recovery remain
+future production work.
+
 ## Local setup and manual request
 
 Install declared dependencies:
@@ -96,6 +158,8 @@ $env:SECRET_KEY = '<generate-a-random-value-of-at-least-32-characters>'
 $env:DATABASE_URL = 'postgresql+psycopg://caselens_app:<password>@localhost:5433/caselens'
 $env:PRIVATE_DOCUMENT_STORAGE_DIR = 'data/private/documents'
 $env:MAX_PRIVATE_UPLOAD_BYTES = '26214400'
+$env:RETRIEVAL_INDEX_DIR = 'data/legal/indexes/bm25'
+$env:GEMINI_API_KEY = '<your-Gemini-development-key>'
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
@@ -115,6 +179,28 @@ $uploaded = Invoke-RestMethod -Method Post -Uri ("http://127.0.0.1:8000/api/case
 Invoke-RestMethod -Method Get -Uri ("http://127.0.0.1:8000/api/cases/{0}/documents" -f $created.id) -WebSession $session
 ```
 
+Windows PowerShell 5.1 research smoke test using an already uploaded authorized
+document:
+
+```powershell
+$origin = 'http://127.0.0.1:5173'
+$caseId = 'case-14373649-7a7e-409d-8b80-842b8175811b'
+$documentId = 'document-070d8470-8ee2-479e-9246-db02b11f0e45'
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$loginBody = @{ password = '<your-local-demo-password>' } | ConvertTo-Json
+$login = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8000/api/auth/login' -Headers @{ Origin = $origin } -ContentType 'application/json' -Body $loginBody -WebSession $session
+$researchBody = @{ query = 'What legal authorities apply to the supplied facts?'; document_ids = @($documentId); top_k = 5 } | ConvertTo-Json
+$task = Invoke-RestMethod -Method Post -Uri ("http://127.0.0.1:8000/api/cases/{0}/research" -f $caseId) -Headers @{ Origin = $origin; 'X-CSRF-Token' = $login.csrf_token } -ContentType 'application/json' -Body $researchBody -WebSession $session
+do {
+    Start-Sleep -Seconds 2
+    $task = Invoke-RestMethod -Method Get -Uri ("http://127.0.0.1:8000/api/research-tasks/{0}" -f $task.id) -WebSession $session
+    $task | ConvertTo-Json -Depth 5
+} while ($task.status -eq 'queued' -or $task.status -eq 'running')
+if ($task.report_id) {
+    Invoke-RestMethod -Method Get -Uri ("http://127.0.0.1:8000/api/reports/{0}" -f $task.report_id) -WebSession $session | ConvertTo-Json -Depth 30
+}
+```
+
 Verify unauthenticated denial:
 
 ```powershell
@@ -126,7 +212,7 @@ try { Invoke-WebRequest -Uri 'http://127.0.0.1:8000/api/cases' } catch { $_.Exce
 Offline SQLite API and persistence tests:
 
 ```powershell
-python -m pytest tests/unit/test_case_document_api.py tests/unit/test_case_report_api.py tests/unit/database/test_persistence.py tests/unit/coordinator -q
+python -m pytest tests/unit/test_research_execution_api.py tests/unit/test_case_document_api.py tests/unit/test_case_report_api.py tests/unit/database/test_persistence.py tests/unit/coordinator -q
 ```
 
 The PostgreSQL test is opt-in and refuses database names without `test`. Create and
