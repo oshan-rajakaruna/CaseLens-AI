@@ -28,6 +28,7 @@ from backend.schemas import (
     VerificationResponse,
 )
 from backend.schemas.legal_report import LegalResearchReport
+from backend.schemas.legal_comparison import FactAuthoritySelection
 from backend.schemas.summarization import SummarizationVerifyResponse
 from backend.services.legal_report import (
     LegalResearchReportAssembler,
@@ -354,6 +355,40 @@ def test_disclaimer_and_unassessed_comparison_are_mandatory() -> None:
     assert "AI-assisted legal research drafts" in report.human_review_disclaimer
     assert "Citation-ID validity" in report.human_review_disclaimer
     assert "professional legal advice" in report.human_review_disclaimer
+
+
+def test_explicit_comparison_link_integrates_without_changing_summary_or_verification() -> None:
+    payload = _payload(
+        _passage("CTX-001", "DOC-A", page=3),
+        _passage("CTX-002", "DOC-B", "A separate authority.", page=4),
+    )
+    response = _response(payload)
+    report = LegalResearchReportAssembler().assemble(
+        Case(id="case-1", title="Synthetic case"),
+        payload,
+        response,
+        analyses=[_analysis()],
+        selections=[
+            FactAuthoritySelection(
+                analysis_document_id="PRIVATE-DOC-1",
+                fact_index=0,
+                context_id="CTX-002",
+            )
+        ],
+    )
+
+    assert report.legal_comparison_status == "links_prepared_for_review"
+    assert report.comparisons[0].authority.context_id == "CTX-002"
+    assert [item.context_id for item in report.authorities] == ["CTX-001"]
+    assert report.summary == response.summary
+    assert report.verification.response == response.verification
+
+
+def test_existing_report_call_without_selections_remains_backward_compatible() -> None:
+    report = _assemble(analyses=[_analysis()])
+
+    assert report.comparisons == []
+    assert report.legal_comparison_status == "not_assessed"
 
 
 def test_identical_inputs_are_deterministic_and_not_mutated() -> None:

@@ -8,6 +8,7 @@ from agents.analysis.schemas import AnalysisResponse
 from agents.coordinator.schemas import RetrievalContextDiagnostics
 from agents.summarization.schemas import SummarizationResult
 from backend.schemas.common import Case
+from backend.schemas.legal_comparison import LegalComparisonRecord
 from backend.schemas.verification import VerificationResponse
 from retrieval.rag import ChunkRetrievalScore
 
@@ -74,6 +75,10 @@ class LegalResearchReport(BaseModel):
     summary: SummarizationResult
     verification: ReportVerificationFindings
     retrieval_diagnostics: RetrievalContextDiagnostics
-    legal_comparison_status: Literal["not_assessed"] = "not_assessed"
+    comparisons: list[LegalComparisonRecord] = Field(default_factory=list)
+    legal_comparison_status: Literal[
+        "not_assessed",
+        "links_prepared_for_review",
+    ] = "not_assessed"
     limitations: list[str] = Field(default_factory=list)
     human_review_disclaimer: str

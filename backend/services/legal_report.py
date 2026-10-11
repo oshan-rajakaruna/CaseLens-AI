@@ -3,11 +3,9 @@
 from collections.abc import Sequence
 
 from agents.analysis.schemas import AnalysisResponse
-from agents.coordinator.schemas import (
-    ContextCitationMapEntry,
-    SummarizationReadyPayload,
-)
+from agents.coordinator.schemas import SummarizationReadyPayload
 from backend.schemas.common import Case
+from backend.schemas.legal_comparison import FactAuthoritySelection
 from backend.schemas.legal_report import (
     AnalysisAvailability,
     LegalResearchReport,
@@ -17,6 +15,10 @@ from backend.schemas.legal_report import (
     ReportVerificationFindings,
 )
 from backend.schemas.summarization import SummarizationVerifyResponse
+from backend.services.legal_comparison import (
+    LegalComparisonAssembler,
+    authority_provenance_agrees,
+)
 from retrieval.rag import RAGContextPassage
 
 _VERIFICATION_SCOPE = (
@@ -44,11 +46,18 @@ class LegalResearchReportAssembler:
         payload: SummarizationReadyPayload,
         summary_verification: SummarizationVerifyResponse,
         analyses: Sequence[AnalysisResponse] | None = None,
+        selections: Sequence[FactAuthoritySelection] | None = None,
     ) -> LegalResearchReport:
         analysis_results = list(analyses) if analyses is not None else []
+        selected = list(selections) if selections is not None else []
         self._validate_analysis_case_ids(case, analysis_results)
         authorities = self._authorities(payload, summary_verification)
         self._validate_verification_citations(authorities, summary_verification)
+        comparisons = LegalComparisonAssembler().build(
+            analysis_results,
+            payload,
+            selected,
+        )
 
         return LegalResearchReport(
             case_information=ReportCaseInformation(
@@ -69,12 +78,17 @@ class LegalResearchReportAssembler:
                 scope=_VERIFICATION_SCOPE,
             ),
             retrieval_diagnostics=payload.diagnostics,
+            comparisons=comparisons,
+            legal_comparison_status=(
+                "links_prepared_for_review" if comparisons else "not_assessed"
+            ),
             limitations=_limitations(
                 analyses,
                 analysis_results,
                 payload,
                 summary_verification,
                 authorities,
+                bool(comparisons),
             ),
             human_review_disclaimer=_DISCLAIMER,
         )
@@ -131,7 +145,7 @@ class LegalResearchReportAssembler:
                     "Summary context provenance does not match the original payload"
                 )
             passage = matches[0]
-            if not _provenance_agrees(entry, passage):
+            if not authority_provenance_agrees(entry, passage):
                 raise LegalResearchReportValidationError(
                     "Authority identity does not match the original payload"
                 )
@@ -176,23 +190,6 @@ class LegalResearchReportAssembler:
                 )
 
 
-def _provenance_agrees(
-    entry: ContextCitationMapEntry,
-    passage: RAGContextPassage,
-) -> bool:
-    citation = passage.citation
-    return (
-        entry.document_id == passage.document_id == citation.document_id
-        and entry.title == passage.title
-        and entry.court == passage.court
-        and entry.source == passage.source == citation.source
-        and entry.chunk_ids == passage.chunk_ids == citation.chunk_ids
-        and entry.pages == passage.pages == citation.pages
-        and entry.official_citation == citation.citation
-        and entry.source_url == citation.source_url
-    )
-
-
 def _analysis_availability(
     supplied: Sequence[AnalysisResponse] | None,
     analyses: Sequence[AnalysisResponse],
@@ -219,6 +216,7 @@ def _limitations(
     payload: SummarizationReadyPayload,
     response: SummarizationVerifyResponse,
     authorities: Sequence[ReportLegalAuthority],
+    comparisons_prepared: bool,
 ) -> list[str]:
     limitations = [
         "Substantive applicability of retrieved legal authorities was not assessed.",
@@ -260,4 +258,9 @@ def _limitations(
     limitations.extend(
         f"Retrieval warning: {warning}" for warning in payload.diagnostics.warnings
     )
+    if comparisons_prepared:
+        limitations.append(
+            "Explicit fact-to-authority links require human review and do not "
+            "establish legal applicability."
+        )
     return list(dict.fromkeys(limitations))
