@@ -9,9 +9,43 @@ prompt-local citation checks, safe provider failure handling, and preservation
 of retrieval warnings. It does not perform retrieval, alter rankings, or run
 Verification Agent checks.
 
-No external model is configured in this phase. Generation is accessed only
-through the injectable `SummarizationProvider` protocol. Tests and smoke tests
-use deterministic fake providers and make no OpenAI, Gemini, or network calls.
+Generation remains accessed through the injectable `SummarizationProvider`
+protocol. `GeminiSummarizationProvider` is the production implementation and
+uses the official synchronous Google Gen AI SDK. Its client can be injected so
+unit tests remain deterministic and make no Gemini or network calls.
+
+## Gemini configuration
+
+Set these backend-only environment variables:
+
+- `GEMINI_API_KEY` (required): Gemini API credential;
+- `GEMINI_MODEL` (optional): generation model, initially
+  `gemini-3.8-flash` in `.env.example`;
+- `GEMINI_MAX_OUTPUT_TOKENS` (optional): positive integer, default `2048`.
+
+Model availability varies by account and over time. If the configured model is
+unavailable, change `GEMINI_MODEL` without modifying application code. Keep the
+credential in the ignored backend `.env`; never expose it to Vite variables or
+frontend code.
+
+The Gemini provider receives the existing deterministic prompt, requests JSON
+constrained by `SummarizationOutput`, and validates the result with that same
+Pydantic model. `SummarizationAgent` then performs its existing CTX citation
+validation. Provider schema validation is not substantive legal verification.
+
+Gemini generation is independent from retrieval embeddings. Semantic retrieval
+continues to use the configured local FastEmbed model
+`BAAI/bge-small-en-v1.5`; selecting Gemini here does not change embedding or
+retrieval behavior.
+
+Run the offline summarization tests from the repository root with:
+
+```powershell
+python -m pytest tests/unit/summarization tests/integration/test_coordinator_summarization.py
+```
+
+These tests use injected clients/providers. A later milestone will adapt
+summarization results to the independently implemented Verification Agent.
 
 ## Provider and prompt contract
 
