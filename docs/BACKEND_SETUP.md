@@ -51,3 +51,18 @@ Extraction uses the existing local extraction module. A PDF with no readable
 text is recorded as `no_text`; OCR is not performed. Retrieval, research-job,
 report, and Coordinator HTTP endpoints require a configured prepared corpus
 provider and remain unimplemented at the API boundary.
+
+## Coordinator testing endpoint
+
+`POST /api/coordinator/execute` is protected by the same verified Supabase
+authentication and case-ownership checks as private case routes. It accepts the
+public `CoordinatorRequest` schema and calls the real Coordinator. For analysis
+and evidence-related tasks, stored extracted document text replaces any client
+supplied document content. Verification evidence must refer to extracted
+documents owned by the selected case.
+
+Precedent tasks require a prepared retrieval index. For an explicitly enabled
+development-only fictional demonstration corpus, set
+`ENABLE_DEMO_PRECEDENT_CORPUS=true` while `APP_ENV=development`. This corpus is
+never built from uploaded case documents and must not be enabled in production.
+Without it, the response preserves the Coordinator's `requires_input` state.

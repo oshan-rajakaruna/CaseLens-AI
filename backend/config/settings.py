@@ -24,6 +24,7 @@ class Settings:
     supabase_jwks_url: str | None
     private_upload_dir: str
     max_upload_bytes: int
+    enable_demo_precedent_corpus: bool
 
 
 @lru_cache
@@ -42,4 +43,5 @@ def get_settings() -> Settings:
         supabase_jwks_url=getenv("SUPABASE_JWKS_URL") or None,
         private_upload_dir=getenv("PRIVATE_UPLOAD_DIR", "data/private_uploads"),
         max_upload_bytes=int(getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024))),
+        enable_demo_precedent_corpus=getenv("ENABLE_DEMO_PRECEDENT_CORPUS", "false").casefold() == "true",
     )
