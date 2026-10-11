@@ -1,7 +1,7 @@
 const plannedCapabilities = [
-  "Legal case analysis",
-  "Evidence review",
-  "Precedent retrieval",
+  "Evidence-grounded research reports",
+  "Citation and provenance review",
+  "Human-reviewed legal research",
 ];
 
 export default function HomePage() {
@@ -15,11 +15,12 @@ export default function HomePage() {
       </p>
 
       <div className="status-card">
-        <p className="status-label">Current development phase</p>
-        <h2>Project foundation</h2>
+        <p className="status-label">Current application status</p>
+        <h2>Research workspace in development</h2>
         <p>
-          The application shell and system boundaries are in place. AI and
-          legal-analysis capabilities are planned for later phases.
+          Backend summarization, verification and structured report components exist.
+          Secure case APIs, saved reports, authentication and browser workflow
+          integration are still pending.
         </p>
       </div>
 

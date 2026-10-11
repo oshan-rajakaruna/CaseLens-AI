@@ -39,6 +39,7 @@ button:focus-visible {
   max-width: 1120px;
   margin: 0 auto;
   padding: 1.5rem clamp(1.25rem, 4vw, 3rem);
+  gap: 1.5rem;
 }
 
 .brand {
@@ -46,6 +47,35 @@ button:focus-visible {
   font-size: 1.4rem;
   font-weight: 700;
   text-decoration: none;
+}
+
+.workspace-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workspace-navigation a {
+  display: inline-block;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.35rem;
+  color: #4a5264;
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.workspace-navigation a:hover {
+  background: #e9e4da;
+}
+
+.workspace-navigation a[aria-current="page"] {
+  color: #172033;
+  background: #e4ddd0;
+  box-shadow: inset 0 -2px 0 #8b6239;
 }
 
 .phase-label,
@@ -445,9 +475,168 @@ button:focus-visible {
   line-height: 1.6;
 }
 
+.workspace-page {
+  width: min(1120px, calc(100% - 2.5rem));
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 4.5rem) 0 5rem;
+}
+
+.workspace-page__header {
+  max-width: 780px;
+  margin-bottom: 2rem;
+}
+
+.workspace-page__header h1 {
+  margin: 0.35rem 0 1rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.5rem, 7vw, 4.75rem);
+  line-height: 1;
+}
+
+.workspace-page__header > p:last-child {
+  color: #4a5264;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.workspace-section,
+.workspace-state {
+  margin: 1rem 0;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid #d8d2c6;
+  border-radius: 0.7rem;
+  background: #fffdf8;
+  box-shadow: 0 10px 24px rgb(23 32 51 / 5%);
+}
+
+.workspace-section h2,
+.workspace-state h2,
+.workspace-card h3,
+.record-list h2 {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.workspace-section > h2,
+.workspace-state h2 {
+  margin-top: 0;
+}
+
+.integration-notice {
+  max-width: 850px;
+  padding: 1rem;
+  border-left: 4px solid #8b6239;
+  color: #4f596c;
+  background: #f8f4ea;
+  line-height: 1.65;
+}
+
+.workspace-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.workspace-card {
+  padding: 1.2rem;
+  border: 1px solid #d8d2c6;
+  border-radius: 0.55rem;
+  background: #faf7f0;
+}
+
+.workspace-card h3 {
+  margin: 0.35rem 0 0.6rem;
+}
+
+.workspace-card p:last-child,
+.workspace-section > p:last-child,
+.workspace-state p {
+  margin-bottom: 0;
+  line-height: 1.65;
+}
+
+.availability-label,
+.record-id {
+  margin: 0;
+  color: #78634b;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workspace-state--error {
+  border-color: #b97770;
+  background: #fff0ee;
+}
+
+.workspace-state--loading {
+  border-color: #8793a8;
+  background: #f3f5f8;
+}
+
+.record-list {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.record-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid #d8d2c6;
+  border-radius: 0.65rem;
+  background: #fffdf8;
+}
+
+.record-list h2 {
+  margin: 0.35rem 0;
+  font-size: 1.35rem;
+}
+
+.record-list__item button {
+  flex: 0 0 auto;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid #725235;
+  border-radius: 0.4rem;
+  color: #fff;
+  background: #725235;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.muted-text {
+  color: #687085;
+}
+
+.action-unavailable {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px dashed #b9b2a5;
+  border-radius: 0.4rem;
+  color: #596174;
+  background: #f7f4ee;
+  line-height: 1.6;
+}
+
 @media (max-width: 540px) {
-  .phase-label {
-    display: none;
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workspace-navigation {
+    gap: 0.2rem;
+  }
+
+  .workspace-navigation a {
+    padding: 0.45rem 0.55rem;
   }
 
   .preview-page,
@@ -469,5 +658,14 @@ button:focus-visible {
 
   .comparison-columns {
     grid-template-columns: 1fr;
+  }
+
+  .record-list__item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .record-list__item button {
+    width: 100%;
   }
 }

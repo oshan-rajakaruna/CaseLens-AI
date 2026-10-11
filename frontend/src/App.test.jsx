@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { shouldShowLegalReportPreview } from "./App.jsx";
+import { pageFromSearch, shouldShowLegalReportPreview } from "./App.jsx";
 import ReportPreviewPage from "./pages/ReportPreviewPage.jsx";
 
 describe("development report preview gate", () => {
@@ -35,5 +35,15 @@ describe("development report preview gate", () => {
     expect(
       screen.getByText("SYNTHETIC TEST DATA — DEVELOPMENT PREVIEW"),
     ).toBeVisible();
+  });
+
+  it("resolves only supported workspace pages and defaults to home", () => {
+    expect(pageFromSearch("?page=dashboard")).toBe("dashboard");
+    expect(pageFromSearch("?page=cases")).toBe("cases");
+    expect(pageFromSearch("?page=case")).toBe("case");
+    expect(pageFromSearch("?page=reports")).toBe("reports");
+    expect(pageFromSearch("?page=report")).toBe("report");
+    expect(pageFromSearch("?page=unknown")).toBe("home");
+    expect(pageFromSearch("")).toBe("home");
   });
 });
