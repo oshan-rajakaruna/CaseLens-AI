@@ -85,6 +85,24 @@ class CaseLensRepository:
     def get_case(self, principal: TrustedPrincipal, case_id: str) -> CaseRecord:
         return CaseRecord.model_validate(self._owned_case(principal, case_id))
 
+    def list_cases(
+        self,
+        principal: TrustedPrincipal,
+        *,
+        offset: int = 0,
+        limit: int = 25,
+    ) -> list[CaseRecord]:
+        if offset < 0 or limit < 1 or limit > 100:
+            raise InvalidRecordError("case pagination is invalid")
+        models = self._session.scalars(
+            select(CaseModel)
+            .where(CaseModel.owner_subject == principal.subject)
+            .order_by(CaseModel.created_at.desc(), CaseModel.id)
+            .offset(offset)
+            .limit(limit)
+        )
+        return [CaseRecord.model_validate(model) for model in models]
+
     def add_document(
         self,
         principal: TrustedPrincipal,
@@ -218,16 +236,24 @@ class CaseLensRepository:
         if model is None:
             raise MissingRecordError("report was not found")
         _require_owner(principal, model.owner_subject)
+        case = self._owned_case(principal, model.case_id)
+        task = self._owned_task(principal, model.task_id)
+        if task.case_id != case.id:
+            raise InvalidRecordError("report relationships are inconsistent")
         return _report_record(model)
 
     def find_reports_by_case(self, principal: TrustedPrincipal, case_id: str) -> list[LegalReportRecord]:
         self._owned_case(principal, case_id)
-        models = self._session.scalars(
+        models = list(self._session.scalars(
             select(LegalReportModel).where(
                 LegalReportModel.case_id == case_id,
                 LegalReportModel.owner_subject == principal.subject,
             ).order_by(LegalReportModel.created_at)
-        )
+        ))
+        for model in models:
+            task = self._owned_task(principal, model.task_id)
+            if task.case_id != case_id:
+                raise InvalidRecordError("report relationships are inconsistent")
         return [_report_record(model) for model in models]
 
     def find_report_by_task(self, principal: TrustedPrincipal, task_id: str) -> LegalReportRecord | None:

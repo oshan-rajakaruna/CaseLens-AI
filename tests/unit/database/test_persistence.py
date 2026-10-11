@@ -83,6 +83,20 @@ def test_case_creation_retrieval_and_owner_identity(service, owner) -> None:
         service.get_case(TrustedPrincipal(subject="auth0|other"), "case-1")
 
 
+def test_case_listing_is_owner_scoped_and_paginated(service, owner) -> None:
+    _case(service, owner, "case-1")
+    _case(service, owner, "case-2")
+    other = TrustedPrincipal(subject="auth0|other")
+    _case(service, other, "case-other")
+
+    first_page = service.list_cases(owner, offset=0, limit=1)
+    second_page = service.list_cases(owner, offset=1, limit=1)
+
+    assert len(first_page) == len(second_page) == 1
+    assert {first_page[0].id, second_page[0].id} == {"case-1", "case-2"}
+    assert all(item.owner_subject == owner.subject for item in first_page + second_page)
+
+
 def test_document_association_and_unsafe_relationships(service, owner) -> None:
     _case(service, owner)
     document = service.add_document(

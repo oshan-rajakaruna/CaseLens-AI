@@ -1,6 +1,8 @@
 """FastAPI entry point for the CaseLens backend foundation."""
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from backend.api.router import api_router
 from backend.config import get_settings
@@ -15,6 +17,14 @@ app = FastAPI(
 )
 
 app.include_router(api_router)
+
+
+@app.exception_handler(RequestValidationError)
+async def sanitized_request_validation_error(request, exc) -> JSONResponse:
+    """Avoid echoing private request values from validation diagnostics."""
+
+    del request, exc
+    return JSONResponse(status_code=422, content={"detail": "Invalid request"})
 
 
 @app.get("/", response_model=RootResponse, tags=["system"])

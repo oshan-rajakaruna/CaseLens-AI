@@ -21,6 +21,10 @@ class Settings:
     secret_key: str
     enable_dev_summarization_api: bool
     dev_summarization_api_token: str
+    enable_dev_case_api: bool
+    dev_auth_operator_subject: str
+    dev_auth_password: str
+    dev_auth_allowed_origin: str
 
 
 @lru_cache
@@ -38,4 +42,8 @@ def get_settings() -> Settings:
             getenv("ENABLE_DEV_SUMMARIZATION_API", "false") == "true"
         ),
         dev_summarization_api_token=getenv("DEV_SUMMARIZATION_API_TOKEN", ""),
+        enable_dev_case_api=(getenv("ENABLE_DEV_CASE_API", "false") == "true"),
+        dev_auth_operator_subject=getenv("DEV_AUTH_OPERATOR_SUBJECT", ""),
+        dev_auth_password=getenv("DEV_AUTH_PASSWORD", ""),
+        dev_auth_allowed_origin=getenv("DEV_AUTH_ALLOWED_ORIGIN", ""),
     )

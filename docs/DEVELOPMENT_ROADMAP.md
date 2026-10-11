@@ -31,13 +31,17 @@ already exist.
   owner-scoped internal repository/service boundary, with Alembic initialization
   and isolated offline tests. Dependency installation, migration execution, and
   manual test verification are pending.
+- Milestone 6C-2: localhost-only signed development sessions and authenticated,
+  owner-scoped case/report API foundations are implemented, with CSRF/origin
+  protections and opt-in isolated PostgreSQL transaction coverage. Manual testing
+  and production identity-provider integration are pending.
 
 ## Still pending
 
 - 5C: secure frontend API integration.
 - Durable Coordinator persistence integration, cancellation, and restart recovery.
 - Production authentication and authorization.
-- Real case and report APIs.
+- Production identity-provider-backed case and report APIs.
 - Frontend integration with authenticated production APIs.
 - Semantic corpus indexing and hybrid production validation. The current
   imported 36-document international-law corpus and persistent BM25 index have

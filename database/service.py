@@ -26,6 +26,11 @@ class PersistenceService:
     def get_case(self, principal: TrustedPrincipal, case_id: str):
         return self._read(lambda repo: repo.get_case(principal, case_id))
 
+    def list_cases(self, principal: TrustedPrincipal, *, offset: int = 0, limit: int = 25):
+        return self._read(
+            lambda repo: repo.list_cases(principal, offset=offset, limit=limit)
+        )
+
     def add_document(self, principal: TrustedPrincipal, **values: Any):
         return self._write(lambda repo: repo.add_document(principal, **values))
 
