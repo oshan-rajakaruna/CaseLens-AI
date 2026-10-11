@@ -26,13 +26,16 @@ already exist.
   validates AgentTask context, runs ResearchWorkflow off the event loop, maps
   completed/partial/failed outcomes, and exposes only sanitized status metadata.
   Manual regression testing is pending.
+- Milestone 6C-1: PostgreSQL-compatible Cases, Case Documents, Research Tasks,
+  Legal Reports, and sanitized Agent Logs persistence is implemented behind an
+  owner-scoped internal repository/service boundary, with Alembic initialization
+  and isolated offline tests. Dependency installation, migration execution, and
+  manual test verification are pending.
 
 ## Still pending
 
 - 5C: secure frontend API integration.
-- Durable Coordinator task lifecycle, persistence, cancellation, and restart
-  recovery.
-- Cases, Reports, and AgentLogs database persistence.
+- Durable Coordinator persistence integration, cancellation, and restart recovery.
 - Production authentication and authorization.
 - Real case and report APIs.
 - Frontend integration with authenticated production APIs.
