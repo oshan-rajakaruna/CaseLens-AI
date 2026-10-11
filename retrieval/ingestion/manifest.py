@@ -199,6 +199,7 @@ def load_manifest(path: str | Path) -> LegalDatasetManifest:
 
     records: list[ManifestDocumentRecord] = []
     seen_document_ids: set[str] = set()
+    seen_file_names: set[str] = set()
     for position, raw_entry in enumerate(envelope.documents, start=1):
         document_id = _entry_label(raw_entry, "document_id")
         file_name = _entry_label(raw_entry, "file_name")
@@ -230,7 +231,22 @@ def load_manifest(path: str | Path) -> LegalDatasetManifest:
             )
             continue
 
+        normalized_file_name = entry.file_name.casefold()
+        if normalized_file_name in seen_file_names:
+            records.append(
+                ManifestDocumentRecord(
+                    position=position,
+                    entry=None,
+                    document_id=entry.document_id,
+                    file_name=entry.file_name,
+                    errors=("file_name: duplicate value in manifest",),
+                    raw_entry=dict(raw_entry),
+                )
+            )
+            continue
+
         seen_document_ids.add(entry.document_id)
+        seen_file_names.add(normalized_file_name)
         records.append(
             ManifestDocumentRecord(
                 position=position,

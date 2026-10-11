@@ -1,6 +1,6 @@
 """Semantic indexing and search independent from BM25 retrieval."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 
 from retrieval.embeddings.base import EmbeddingService
 from retrieval.embeddings.checkpoint import EmbeddingCheckpointStore
@@ -100,6 +100,22 @@ class SemanticSearchService:
         self.index = replacement
         self.checkpoint_hits = len(chunks_to_embed) - len(missing_chunks)
         self.new_embeddings = len(missing_chunks)
+
+    def load_index(
+        self,
+        chunks: Sequence[LegalTextChunk],
+        vectors: Sequence[Sequence[float]],
+    ) -> None:
+        """Restore validated persisted vectors without embedding documents again."""
+
+        if len(chunks) != len(vectors):
+            raise ValueError("Persisted chunks and vectors have different counts")
+        replacement = InMemoryVectorIndex(self.embedding_service.dimension)
+        for chunk, vector in zip(chunks, vectors, strict=True):
+            replacement.add(vector, chunk)
+        self.index = replacement
+        self.checkpoint_hits = len(chunks)
+        self.new_embeddings = 0
 
     def search(
         self,

@@ -201,6 +201,24 @@ def test_missing_semantic_index_returns_safe_service_error() -> None:
     assert agent.calls == []
 
 
+def test_missing_lexical_index_returns_safe_service_error() -> None:
+    agent = FakeRetrievalAgent(bm25_index_size=0)
+    service = RetrievalService(agent)  # type: ignore[arg-type]
+    app.dependency_overrides[get_retrieval_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/retrieval/search",
+                json={"query": "termination", "mode": "bm25"},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Lexical retrieval index is not initialized"
+    assert agent.calls == []
+
+
 def test_provider_error_does_not_expose_provider_details() -> None:
     agent = FakeRetrievalAgent(
         failure=MissingGeminiAPIKeyError("secret provider detail")

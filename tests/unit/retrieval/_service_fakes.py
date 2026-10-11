@@ -30,10 +30,12 @@ class FakeRetrievalAgent:
     def __init__(
         self,
         *,
+        bm25_index_size: int = 1,
         semantic_index_size: int = 1,
         failure: Exception | None = None,
         empty: bool = False,
     ) -> None:
+        self.bm25_index_size = bm25_index_size
         self.semantic_index_size = semantic_index_size
         self.failure = failure
         self.empty = empty

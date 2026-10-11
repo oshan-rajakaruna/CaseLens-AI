@@ -4,7 +4,7 @@ Advanced reranking and full Coordinator orchestration remain outside this
 milestone.
 """
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 from retrieval.bm25 import BM25Index, BM25Searcher
@@ -56,6 +56,12 @@ class RetrievalAgent:
 
         return len(self._semantic.index)
 
+    @property
+    def embedding_service(self) -> EmbeddingService:
+        """Expose the configured query embedder for persisted-index validation."""
+
+        return self._semantic.embedding_service
+
     def index_chunks(self, chunks: Iterable[LegalTextChunk]) -> None:
         """Replace the agent's current BM25 index."""
 
@@ -65,6 +71,15 @@ class RetrievalAgent:
         """Embed chunks and replace only the semantic vector index."""
 
         self._semantic.build_index(chunks)
+
+    def load_semantic_index(
+        self,
+        chunks: Sequence[LegalTextChunk],
+        vectors: Sequence[Sequence[float]],
+    ) -> None:
+        """Restore persisted semantic vectors without re-embedding documents."""
+
+        self._semantic.load_index(chunks, vectors)
 
     def search(
         self,

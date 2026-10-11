@@ -1,6 +1,8 @@
 """Application service dispatching retrieval modes and mapping public results."""
 
 from functools import lru_cache
+from os import getenv
+from pathlib import Path
 
 from agents.retrieval import RetrievalAgent
 from backend.schemas.retrieval import (
@@ -11,6 +13,7 @@ from backend.schemas.retrieval import (
 )
 from retrieval.embeddings import GeminiEmbeddingError, MissingGeminiAPIKeyError
 from retrieval.hybrid import resolve_hybrid_weights
+from retrieval.index_store import RetrievalIndexStore, RetrievalIndexStoreError
 from retrieval.preprocessing.metadata import (
     BM25SearchResult,
     HybridSearchResult,
@@ -58,6 +61,17 @@ class RetrievalService:
             )
 
         try:
+            if getattr(self.agent, "bm25_index_size", None) == 0:
+                raise RetrievalIndexNotReadyError(
+                    "Lexical retrieval index is not initialized"
+                )
+            if (
+                request.mode in {"semantic", "hybrid"}
+                and getattr(self.agent, "semantic_index_size", None) == 0
+            ):
+                raise RetrievalIndexNotReadyError(
+                    "Semantic retrieval index is not initialized"
+                )
             if request.mode == "bm25":
                 internal_results = self.agent.search_bm25(
                     request.query,
@@ -66,10 +80,6 @@ class RetrievalService:
                     max_chunks_per_document=request.max_chunks_per_document,
                 )
             elif request.mode == "semantic":
-                if getattr(self.agent, "semantic_index_size", None) == 0:
-                    raise RetrievalIndexNotReadyError(
-                        "Semantic retrieval index is not initialized"
-                    )
                 internal_results = self.agent.search_semantic(
                     request.query,
                     top_k=request.top_k,
@@ -158,6 +168,17 @@ class RetrievalService:
 
 @lru_cache
 def get_retrieval_service() -> RetrievalService:
-    """Return the process-local retrieval service without loading test data."""
+    """Load the configured persisted corpus once for the process."""
 
-    return RetrievalService(RetrievalAgent())
+    agent = RetrievalAgent()
+    index_dir = Path(
+        getenv("RETRIEVAL_INDEX_DIR", "data/legal/indexes/current")
+    )
+    try:
+        loaded = RetrievalIndexStore(index_dir).load(agent.embedding_service)
+    except RetrievalIndexStoreError:
+        return RetrievalService(agent)
+    agent.index_chunks(loaded.chunks)
+    if loaded.vectors is not None:
+        agent.load_semantic_index(loaded.chunks, loaded.vectors)
+    return RetrievalService(agent)

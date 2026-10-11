@@ -9,6 +9,7 @@ from retrieval.config import load_retrieval_environment
 from retrieval.ingestion.manifest import ManifestLoadError
 from retrieval.ingestion.pipeline import IngestionPipeline, StrictIngestionError
 from retrieval.ingestion.report import IngestionReport
+from retrieval.index_store import RetrievalIndexStore, RetrievalIndexStoreError
 
 
 def _print_report(report: IngestionReport) -> None:
@@ -42,6 +43,11 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Optional resumable JSONL embedding checkpoint path.",
     )
+    parser.add_argument(
+        "--index-dir",
+        type=Path,
+        help="Persist API-loadable retrieval artifacts in this directory.",
+    )
     parser.add_argument("--chunk-size", type=int, default=300)
     parser.add_argument(
         "--chunk-overlap",
@@ -71,11 +77,28 @@ def main(argv: list[str] | None = None) -> int:
                 + ("; dry-run makes no API calls." if arguments.dry_run else "."),
                 file=sys.stderr,
             )
+        checkpoint_path = arguments.embedding_checkpoint
+        if arguments.semantic and checkpoint_path is None and arguments.index_dir:
+            checkpoint_path = RetrievalIndexStore(
+                arguments.index_dir
+            ).embedding_checkpoint_path
         pipeline.build_indexes(
             outcome,
             semantic=arguments.semantic,
-            checkpoint_path=arguments.embedding_checkpoint,
+            checkpoint_path=checkpoint_path,
         )
+        if arguments.index_dir and not arguments.dry_run:
+            store = RetrievalIndexStore(arguments.index_dir)
+            semantic_indexed = outcome.semantic_search is not None
+            store.save(
+                outcome.chunks,
+                embedding_service=(
+                    outcome.semantic_search.embedding_service
+                    if outcome.semantic_search is not None
+                    else None
+                ),
+                semantic_indexed=semantic_indexed,
+            )
     except ManifestLoadError as exc:
         print(f"Ingestion failed: {exc}", file=sys.stderr)
         return 2
@@ -84,6 +107,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     except StrictIngestionError as exc:
         _print_report(exc.report)
+        return 1
+    except RetrievalIndexStoreError as exc:
+        print(f"Index persistence failed: {exc}", file=sys.stderr)
         return 1
 
     _print_report(outcome.report)

@@ -1,5 +1,6 @@
 """Tests for curated legal dataset manifest contracts."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -33,8 +34,39 @@ def test_duplicate_document_id_is_retained_as_entry_failure() -> None:
 
     assert manifest.documents[0].entry is not None
     assert manifest.documents[1].entry is None
+
+
+def test_duplicate_file_name_is_rejected_case_insensitively(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "manifest_version": "1.0",
+                "dataset_name": "Duplicate files",
+                "data_classification": "curated",
+                "documents": [
+                    {
+                        "document_id": "DOC-1",
+                        "file_name": "Case.pdf",
+                        "provenance": "team_curated_sample",
+                    },
+                    {
+                        "document_id": "DOC-2",
+                        "file_name": "case.PDF",
+                        "provenance": "team_curated_sample",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = load_manifest(manifest_path)
+
+    assert manifest.documents[0].entry is not None
+    assert manifest.documents[1].entry is None
     assert manifest.documents[1].errors == (
-        "document_id: duplicate value in manifest",
+        "file_name: duplicate value in manifest",
     )
 
 
