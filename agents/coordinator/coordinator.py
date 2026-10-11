@@ -1,19 +1,16 @@
-"""Coordinator agent interface for future CaseLens orchestration.
+"""Internal Coordinator entry point for CaseLens research orchestration."""
 
-The coordinator will receive a task, determine a workflow, pass structured
-context to specialist agents, aggregate their results, and return verified
-output. Phase 1 intentionally provides no executable orchestration.
-"""
-
+from agents.coordinator.workflow import CoordinatorWorkflow
 from backend.schemas import AgentResult, AgentTask
 
 
 class Coordinator:
-    """Declare the future coordinator entry point without fake behavior."""
+    """Delegate validated internal tasks to the configured workflow adapter."""
+
+    def __init__(self, workflow: CoordinatorWorkflow) -> None:
+        self.workflow = workflow
 
     async def handle(self, task: AgentTask) -> AgentResult:
-        """Coordinate a task after workflow behavior is implemented."""
+        """Delegate exactly once; the adapter owns validation and execution safety."""
 
-        raise NotImplementedError(
-            "Coordinator execution is planned for a later development phase."
-        )
+        return await self.workflow.run(task)

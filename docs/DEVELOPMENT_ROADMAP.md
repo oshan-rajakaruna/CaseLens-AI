@@ -14,22 +14,31 @@ already exist.
 - Milestone 4B-2: opt-in, unverified Gemini comparative explanations.
 - Milestone 5A: reusable Legal Research Report frontend components, synthetic
   development preview, and frontend testing foundation.
+- Milestone 6B-1: internal, dependency-injected ResearchWorkflow composing
+  Analysis, retrieval context, summarization, Verification, report assembly,
+  optional comparisons, and Markdown rendering.
 
 ## Current
 
 - Milestone 5B: dashboard and case/report workspace implemented; manual testing
   and visual verification are pending.
+- Milestone 6B-2: shared Coordinator activated through an internal adapter that
+  validates AgentTask context, runs ResearchWorkflow off the event loop, maps
+  completed/partial/failed outcomes, and exposes only sanitized status metadata.
+  Manual regression testing is pending.
 
 ## Still pending
 
 - 5C: secure frontend API integration.
-- Milestone 6: Coordinator and shared backend workflow.
+- Durable Coordinator task lifecycle, persistence, cancellation, and restart
+  recovery.
 - Cases, Reports, and AgentLogs database persistence.
 - Production authentication and authorization.
 - Real case and report APIs.
 - Frontend integration with authenticated production APIs.
-- Nine official legal PDFs, reviewed metadata, and team dataset approval.
-- Dataset approval, legal document ingestion, and real-data validation.
+- Semantic corpus indexing and hybrid production validation. The current
+  imported 36-document international-law corpus and persistent BM25 index have
+  been manually exercised, but dataset approval and broader evaluation remain.
 - Member 2, 3, and 4 contract coordination.
 - Human review and substantive comparison-verification design.
 - Real-document end-to-end integration, security review, and deployment.
