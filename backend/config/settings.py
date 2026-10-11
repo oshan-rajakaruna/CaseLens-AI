@@ -25,6 +25,8 @@ class Settings:
     dev_auth_operator_subject: str
     dev_auth_password: str
     dev_auth_allowed_origin: str
+    private_document_storage_dir: str
+    max_private_upload_bytes: int
 
 
 @lru_cache
@@ -46,4 +48,10 @@ def get_settings() -> Settings:
         dev_auth_operator_subject=getenv("DEV_AUTH_OPERATOR_SUBJECT", ""),
         dev_auth_password=getenv("DEV_AUTH_PASSWORD", ""),
         dev_auth_allowed_origin=getenv("DEV_AUTH_ALLOWED_ORIGIN", ""),
+        private_document_storage_dir=getenv(
+            "PRIVATE_DOCUMENT_STORAGE_DIR", "data/private/documents"
+        ),
+        max_private_upload_bytes=int(
+            getenv("MAX_PRIVATE_UPLOAD_BYTES", str(25 * 1024 * 1024))
+        ),
     )

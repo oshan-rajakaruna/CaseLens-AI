@@ -35,11 +35,15 @@ already exist.
   owner-scoped case/report API foundations are implemented, with CSRF/origin
   protections and opt-in isolated PostgreSQL transaction coverage. Manual testing
   and production identity-provider integration are pending.
+- Milestone 6C-3A: authenticated owner-scoped PDF/TXT evidence upload, private
+  opaque-key local storage, safe metadata listing, and a trusted Analysis-input
+  extraction boundary are implemented. Manual testing is pending.
 
 ## Still pending
 
 - 5C: secure frontend API integration.
 - Durable Coordinator persistence integration, cancellation, and restart recovery.
+- 6C-3B Coordinator research execution over authorized stored evidence.
 - Production authentication and authorization.
 - Production identity-provider-backed case and report APIs.
 - Frontend integration with authenticated production APIs.

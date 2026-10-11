@@ -33,3 +33,6 @@ data/legal/processed/*
 !data/legal/processed/.gitkeep
 !data/legal/processed/README.md
 data/legal/indexes/*
+data/private/*
+!data/private/.gitkeep
+/data/test-fixtures/

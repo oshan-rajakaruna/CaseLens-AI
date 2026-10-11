@@ -34,6 +34,18 @@ class CaseListResponse(BaseModel):
     limit: int
 
 
+class CaseDocumentResponse(BaseModel):
+    id: str
+    case_id: str
+    safe_filename: str
+    media_type: str
+    uploaded_at: datetime
+
+
+class CaseDocumentListResponse(BaseModel):
+    items: list[CaseDocumentResponse]
+
+
 class LegalReportResponse(BaseModel):
     id: str
     case_id: str

@@ -1,8 +1,8 @@
-# Authenticated case and report API foundation
+# Authenticated case, report, and private evidence API foundation
 
-Milestone 6C-2 provides a localhost-only demonstration session and owner-scoped
-case/report reads. It does not provide production authentication, uploads, research
-execution, or frontend integration.
+Milestones 6C-2 and 6C-3A provide a localhost-only demonstration session,
+owner-scoped case/report reads, and private PDF/TXT evidence uploads. They do not
+provide production authentication, research execution, or frontend integration.
 
 ## Development authentication
 
@@ -38,6 +38,8 @@ or report requests.
 - `GET /api/cases/{case_id}`
 - `GET /api/cases/{case_id}/reports`
 - `GET /api/reports/{report_id}`
+- `POST /api/cases/{case_id}/documents`
+- `GET /api/cases/{case_id}/documents`
 
 Every case/report endpoint derives `TrustedPrincipal` from the signed session.
 Requests cannot submit an owner. Foreign and missing resources both return 404.
@@ -45,6 +47,33 @@ Report endpoints return the persisted structured `LegalResearchReport`, preservi
 CTX/provenance, verifier outcomes, comparison review labels, and the human-review
 disclaimer. They never return `ResearchWorkflowResult`, task logs, SQL details, or
 database connection information.
+
+## Private evidence uploads
+
+Upload one multipart field named `file`. The upload route requires an authenticated
+owner session, exact configured `Origin`, and the session's `X-CSRF-Token`.
+
+Supported types are `application/pdf` with a `.pdf` filename and `text/plain` with
+a `.txt` filename. The server rejects empty files, invalid UTF-8, malformed or
+encrypted PDFs, mismatched extensions/MIME types, traversal filenames, and files
+larger than `MAX_PRIVATE_UPLOAD_BYTES` (25 MiB by default).
+
+Files are stored below `PRIVATE_DOCUMENT_STORAGE_DIR` (default
+`data/private/documents`) under server-generated opaque keys. Exclusive creation
+prevents overwrites; submitted filenames are display metadata only. The storage
+root is Git-ignored and rejected if configured inside the public legal corpus,
+generic raw-data directory, or frontend public directory. Database failures trigger
+best-effort removal of the newly stored private file.
+
+Document-list responses contain only document ID, case ID, safe display filename,
+media type, and upload timestamp. They never contain bytes, extracted text, hashes,
+storage keys, or filesystem paths.
+
+The internal `PrivateEvidenceService` rechecks owner/case/document relationships,
+resolves only a validated opaque key, re-extracts the private file, and produces the
+existing `EvidenceDocumentInput` with page/text locations. PDF extraction uses
+PyMuPDF and does not perform OCR. Valid scanned/image-only PDFs are labelled
+`no_text` and `ocr_required`; they are not promoted to Analysis input.
 
 ## Local setup and manual request
 
@@ -65,10 +94,12 @@ $env:DEV_AUTH_PASSWORD = '<choose-a-local-demo-password>'
 $env:DEV_AUTH_ALLOWED_ORIGIN = 'http://127.0.0.1:5173'
 $env:SECRET_KEY = '<generate-a-random-value-of-at-least-32-characters>'
 $env:DATABASE_URL = 'postgresql+psycopg://caselens_app:<password>@localhost:5433/caselens'
+$env:PRIVATE_DOCUMENT_STORAGE_DIR = 'data/private/documents'
+$env:MAX_PRIVATE_UPLOAD_BYTES = '26214400'
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-In a second PowerShell process with matching non-secret variables, log in while
+In a second PowerShell 7 process with matching non-secret variables, log in while
 retaining the cookie, then create/list/read one case:
 
 ```powershell
@@ -80,6 +111,8 @@ $caseBody = @{ title = 'Local demonstration case'; research_question = 'What law
 $created = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8000/api/cases' -Headers @{ Origin = $origin; 'X-CSRF-Token' = $login.csrf_token } -ContentType 'application/json' -Body $caseBody -WebSession $session
 Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8000/api/cases' -WebSession $session
 Invoke-RestMethod -Method Get -Uri ("http://127.0.0.1:8000/api/cases/{0}" -f $created.id) -WebSession $session
+$uploaded = Invoke-RestMethod -Method Post -Uri ("http://127.0.0.1:8000/api/cases/{0}/documents" -f $created.id) -Headers @{ Origin = $origin; 'X-CSRF-Token' = $login.csrf_token } -Form @{ file = Get-Item -LiteralPath 'C:\path\to\authorized-evidence.pdf' } -WebSession $session
+Invoke-RestMethod -Method Get -Uri ("http://127.0.0.1:8000/api/cases/{0}/documents" -f $created.id) -WebSession $session
 ```
 
 Verify unauthenticated denial:
@@ -93,7 +126,7 @@ try { Invoke-WebRequest -Uri 'http://127.0.0.1:8000/api/cases' } catch { $_.Exce
 Offline SQLite API and persistence tests:
 
 ```powershell
-python -m pytest tests/unit/test_case_report_api.py tests/unit/database/test_persistence.py tests/unit/coordinator -q
+python -m pytest tests/unit/test_case_document_api.py tests/unit/test_case_report_api.py tests/unit/database/test_persistence.py tests/unit/coordinator -q
 ```
 
 The PostgreSQL test is opt-in and refuses database names without `test`. Create and

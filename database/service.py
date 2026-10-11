@@ -34,6 +34,19 @@ class PersistenceService:
     def add_document(self, principal: TrustedPrincipal, **values: Any):
         return self._write(lambda repo: repo.add_document(principal, **values))
 
+    def get_document(
+        self,
+        principal: TrustedPrincipal,
+        case_id: str,
+        document_id: str,
+    ):
+        return self._read(
+            lambda repo: repo.get_document(principal, case_id, document_id)
+        )
+
+    def list_documents(self, principal: TrustedPrincipal, case_id: str):
+        return self._read(lambda repo: repo.list_documents(principal, case_id))
+
     def create_task(self, principal: TrustedPrincipal, **values: Any):
         return self._write(lambda repo: repo.create_task(principal, **values))
 

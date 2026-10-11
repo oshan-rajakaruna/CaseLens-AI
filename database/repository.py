@@ -133,6 +133,35 @@ class CaseLensRepository:
         self._session.flush()
         return CaseDocumentRecord.model_validate(model)
 
+    def get_document(
+        self,
+        principal: TrustedPrincipal,
+        case_id: str,
+        document_id: str,
+    ) -> CaseDocumentRecord:
+        self._owned_case(principal, case_id)
+        model = self._session.get(CaseDocumentModel, document_id)
+        if model is None or model.case_id != case_id:
+            raise MissingRecordError("document was not found")
+        _require_owner(principal, model.owner_subject)
+        return CaseDocumentRecord.model_validate(model)
+
+    def list_documents(
+        self,
+        principal: TrustedPrincipal,
+        case_id: str,
+    ) -> list[CaseDocumentRecord]:
+        self._owned_case(principal, case_id)
+        models = self._session.scalars(
+            select(CaseDocumentModel)
+            .where(
+                CaseDocumentModel.case_id == case_id,
+                CaseDocumentModel.owner_subject == principal.subject,
+            )
+            .order_by(CaseDocumentModel.uploaded_at, CaseDocumentModel.id)
+        )
+        return [CaseDocumentRecord.model_validate(model) for model in models]
+
     def create_task(
         self,
         principal: TrustedPrincipal,
