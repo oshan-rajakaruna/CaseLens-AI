@@ -2,8 +2,7 @@
 
 from fastapi import APIRouter
 
-api_router = APIRouter(prefix="/api")
+from backend.api.drafts import draft_router
 
-# Future routers: cases, reports, coordinator, search, retrieval, evidence,
-# analysis, authentication, and verification. They will be included here only
-# when their real contracts and behavior are implemented.
+api_router = APIRouter(prefix="/api")
+api_router.include_router(draft_router)

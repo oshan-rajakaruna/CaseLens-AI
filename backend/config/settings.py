@@ -21,6 +21,7 @@ class Settings:
     gemini_model: str
     gemini_max_output_tokens: int
     secret_key: str
+    enable_unauthenticated_dev_api: bool = False
 
 
 @lru_cache
@@ -36,4 +37,8 @@ def get_settings() -> Settings:
         gemini_model=getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         gemini_max_output_tokens=int(getenv("GEMINI_MAX_OUTPUT_TOKENS", "4096")),
         secret_key=getenv("SECRET_KEY", ""),
+        enable_unauthenticated_dev_api=getenv(
+            "ENABLE_UNAUTHENTICATED_DEV_API", "false"
+        ).strip().lower()
+        in {"1", "true", "yes", "on"},
     )
