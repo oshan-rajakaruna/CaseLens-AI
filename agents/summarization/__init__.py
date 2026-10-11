@@ -10,8 +10,16 @@ from agents.summarization.agent import (
 from agents.summarization.citations import (
     CitationValidationResult,
     validate_context_citations,
+    validate_source_citation_ids,
 )
-from agents.summarization.prompt import build_summarization_provider_request
+from agents.summarization.comparison import CasePrecedentComparator
+from agents.summarization.evidence_summary import EvidenceSummarizer
+from agents.summarization.precedent_summary import PrecedentSummarizer
+from agents.summarization.report import LegalResearchReportGenerator, render_report_markdown
+from agents.summarization.prompt import (
+    build_llm_evidence_provider_request,
+    build_summarization_provider_request,
+)
 from agents.summarization.provider import SummarizationProvider
 from agents.summarization.provenance import (
     UnknownContextCitationError,
@@ -19,16 +27,62 @@ from agents.summarization.provenance import (
     render_citation_provenance,
 )
 from agents.summarization.schemas import (
+    AnalysisFinding,
+    CaseComparison,
+    CaseComparisonRequest,
+    ComparisonPoint,
+    EvidenceItem,
+    EvidenceSummary,
+    EvidenceSummaryPoint,
+    LLMSummaryDraft,
+    LLMSummaryDraftPoint,
+    LLMSourceContext,
+    LegalResearchReport,
+    LegalResearchReportRequest,
+    ReportPoint,
+    SummarizationWorkflowRequest,
+    SummarizationWorkflowResponse,
+    WorkflowStageResult,
+    GroundingWarning,
+    JudgmentMetadata,
+    PrecedentSummaryPoint,
+    PrecedentSummary,
+    ReportSection,
+    RetrievedPassage,
+    SourceReference,
     SummarizationCitationValidation,
     SummarizationOutput,
     SummarizationProviderMetadata,
     SummarizationProviderRequest,
     SummarizationProviderResponse,
+    SummarizationRequest,
     SummarizationResult,
+    SummarizationResponse,
 )
 
 __all__ = [
     "CitationValidationResult",
+    "AnalysisFinding",
+    "CaseComparison",
+    "CaseComparisonRequest",
+    "CasePrecedentComparator",
+    "ComparisonPoint",
+    "EvidenceItem",
+    "EvidenceSummary",
+    "EvidenceSummaryPoint",
+    "LLMSummaryDraft",
+    "LLMSummaryDraftPoint",
+    "LLMSourceContext",
+    "LegalResearchReport",
+    "LegalResearchReportRequest",
+    "LegalResearchReportGenerator",
+    "ReportPoint",
+    "SummarizationWorkflowRequest",
+    "SummarizationWorkflowResponse",
+    "WorkflowStageResult",
+    "EvidenceSummarizer",
+    "GroundingWarning",
+    "JudgmentMetadata",
     "INSUFFICIENT_CONTEXT_ANSWER",
     "SummarizationAgent",
     "SummarizationAgentError",
@@ -39,11 +93,22 @@ __all__ = [
     "SummarizationProviderMetadata",
     "SummarizationProviderRequest",
     "SummarizationProviderResponse",
+    "SummarizationRequest",
     "SummarizationResult",
+    "SummarizationResponse",
     "SummarizationValidationError",
     "UnknownContextCitationError",
+    "PrecedentSummary",
+    "PrecedentSummaryPoint",
+    "PrecedentSummarizer",
+    "ReportSection",
+    "RetrievedPassage",
+    "SourceReference",
     "build_summarization_provider_request",
+    "build_llm_evidence_provider_request",
     "get_citation_provenance",
     "render_citation_provenance",
+    "render_report_markdown",
     "validate_context_citations",
+    "validate_source_citation_ids",
 ]

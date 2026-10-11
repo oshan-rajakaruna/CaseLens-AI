@@ -1,0 +1,12 @@
+{
+  "annotation_policy": "Provisional, independently authored fictional annotations. Exact selected statements and explicit source identifiers are required; missing information is not a contradiction; citation identity is not semantic entailment.",
+  "evidence": {
+    "E01":{"expected":true},"E02":{"expected":true},"E03":{"expected":true},"E04":{"expected":true,"attributed":true,"negated":true},"E05":{"expected":true,"attributed":true,"negated":true},"E06":{"expected":true,"conditional":true},"E07":{"expected":true},"E08":{"expected":true},"E09":{"expected":true},"E10":{"expected":true,"negated":true},"E11":{"expected":false},"E12":{"expected":true,"limited_provenance":true}
+  },
+  "precedent": {
+    "P01":{"issue":true,"reasoning":true,"holding":true},"P02":{"issue":true,"reasoning":true,"holding":true},"P03":{"issue":true,"reasoning":true,"holding":true},"P04":{"issue":false,"reasoning":false,"holding":false},"P05":{"issue":false,"reasoning":false,"holding":false},"P06":{"issue":false,"reasoning":false,"holding":false},"P07":{"issue":false,"reasoning":true,"holding":true},"P08":{"issue":true,"reasoning":false,"holding":false},"P09":{"issue":false,"reasoning":false,"holding":false},"P10":{"issue":false,"reasoning":false,"holding":true}
+  },
+  "comparison": {
+    "C01":{"topic":"payment_obligation"},"C02":{"difference":"payment amount or currency"},"C03":{"difference":"stated date or deadline"},"C04":{"topic":"notice_requirement"},"C05":{"topic":"payment_obligation","attribution_limit":true},"C06":{"topic":"termination_condition","conditional_limit":true},"C07":{"topic":null},"C08":{"topic":"notice_requirement","missing":true}
+  }
+}

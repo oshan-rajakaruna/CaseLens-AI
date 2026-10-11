@@ -1,0 +1,7 @@
+[
+  {"id": "WF-01", "evidence": "Ms Perera alleged that payment was not made.", "negated": true, "attributed": true, "precedent": true, "jurisdiction": "Singapore", "expected_status": "partial"},
+  {"id": "WF-02", "evidence": "Mr Silva stated that notice may be served if approval is granted.", "conditional": true, "attributed": true, "precedent": true, "jurisdiction": "India", "expected_status": "partial"},
+  {"id": "WF-03", "evidence": "The buyer shall pay LKR 250,000 by 10 May 2025.", "precedent": false, "expected_status": "partial"},
+  {"id": "WF-04", "evidence": "", "precedent": false, "expected_status": "requires_input"},
+  {"id": "WF-05", "evidence": "The claimant denied that the agreement was terminated.", "negated": true, "attributed": true, "precedent": true, "jurisdiction": "United Kingdom", "expected_status": "partial"}
+]
