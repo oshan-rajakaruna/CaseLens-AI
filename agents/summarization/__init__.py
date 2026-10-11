@@ -39,6 +39,14 @@ from agents.summarization.schemas import (
     SummarizationProviderResponse,
     SummarizationResult,
 )
+from agents.summarization.verification_bridge import (
+    SummarizationVerificationBridge,
+    SummarizationVerificationBridgeError,
+    SummarizationVerificationBridgeResult,
+    SummaryNotVerifiableError,
+    SummaryProvenanceError,
+    VerificationExecutionError,
+)
 
 __all__ = [
     "CitationValidationResult",
@@ -65,7 +73,13 @@ __all__ = [
     "SummarizationProviderResponse",
     "SummarizationResult",
     "SummarizationValidationError",
+    "SummarizationVerificationBridge",
+    "SummarizationVerificationBridgeError",
+    "SummarizationVerificationBridgeResult",
+    "SummaryNotVerifiableError",
+    "SummaryProvenanceError",
     "UnknownContextCitationError",
+    "VerificationExecutionError",
     "build_summarization_provider_request",
     "get_citation_provenance",
     "render_citation_provenance",

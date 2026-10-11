@@ -98,11 +98,30 @@ output must acknowledge weak, uncertain, limited, insufficient, or
 relevance-sensitive evidence in its limitations. Weak context is not rejected
 when usable evidence remains.
 
-## Future verification handoff
+## Verification bridge
 
-`SummarizationResult` exposes the validated output, detailed citation
-validation, safe provider/model identity, used context IDs, and warnings. A
-future Verification Agent should accept that wrapper and independently check
-claim support, legal-authority fidelity, citation-to-passage entailment, and
-responsible-AI safeguards. The Verification Agent must not be folded into the
-Summarization Agent.
+`SummarizationVerificationBridge.verify(task_id, payload, result)` requires
+both the original `SummarizationReadyPayload` and its `SummarizationResult`.
+The result supplies the generated answer and validated CTX references; the
+payload supplies the authoritative evidence text and source provenance that is
+not duplicated in the generated result.
+
+Each used CTX reference becomes both the evidence ID and an internal verifier
+locator. The bridge maps it to the original document ID and passage text, while
+retaining the complete `ContextCitationMapEntry` separately for audit and
+display. A CTX locator is not represented as an original page, paragraph, or
+official legal citation, and generated wording is never used as a citation
+excerpt.
+
+The current summary contract contains one answer rather than atomic claims, so
+the bridge removes only valid inline CTX markers and submits the complete
+answer as one `LegalClaim`. The existing verifier then decides support using
+its conservative rules. Valid CTX identity does not prove substantive legal
+correctness, and generated paraphrases are expected to produce `uncertain`
+results when they do not directly match cited evidence.
+
+Missing, ambiguous, or inconsistent provenance and summaries without usable
+cited evidence raise controlled bridge errors; no successful verification
+result is fabricated. Downstream Coordinator or API code should call the
+bridge only after summarization and should preserve the returned Verification
+Agent response without promoting its statuses or `verified` flag.
