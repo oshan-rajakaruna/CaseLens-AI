@@ -30,7 +30,7 @@ report = LegalResearchReportAssembler().assemble(
 )
 ```
 
-Generated legal comparisons, Markdown/PDF rendering, API endpoints, downloads,
+Generated legal comparisons, PDF/HTML export, API endpoints, downloads,
 database persistence, and AgentLogs are future milestones.
 
 ## Explicit fact-to-authority links
@@ -67,3 +67,37 @@ successfully. It does not mean the authority applies, the fact is true, or the
 comparison was substantively verified. Every link uses fixed neutral wording
 and `requires_human_review`. Gemini-generated comparative explanations remain
 postponed until their generation and verification contracts are agreed.
+
+## Safe Markdown rendering
+
+`LegalResearchReportMarkdownRenderer` converts an already assembled report to
+one deterministic Markdown string. It performs no generation, retrieval,
+analysis, verification, legal reasoning, comparison verification, file access,
+or network operation:
+
+```python
+from backend.services.legal_report_markdown import (
+    LegalResearchReportMarkdownRenderer,
+)
+
+markdown = LegalResearchReportMarkdownRenderer().render(report)
+```
+
+The output includes case information, Analysis availability and findings,
+summary-cited authorities, explicit comparison links, the original generated
+summary, exact Verification Agent statuses, report limitations, and the
+mandatory human-review disclaimer. Missing Analysis, empty findings, absent
+comparisons, and unavailable optional authority metadata are stated or omitted
+without inventing replacement values.
+
+Report-derived text is treated as untrusted: Markdown control characters and
+raw HTML are escaped, multiline narrative is placed in escaped block quotes,
+and only validated HTTP or HTTPS source URLs become clickable links. Unsafe
+schemes are omitted. Full evidence excerpts and authority passages are not
+rendered by default.
+
+The returned Markdown can contain sensitive case facts. Rendering does not
+authorize publication, establish legal correctness, prove applicability, or
+turn summary verification into report-wide verification. The renderer returns
+text only; HTML/PDF export, file saving, download APIs, and persistence do not
+exist in this milestone.
